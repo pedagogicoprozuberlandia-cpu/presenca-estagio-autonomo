@@ -379,7 +379,7 @@
         r.ilpi_nome || '',
         r.data ? r.data.split('-').reverse().join('/') : '',
         r.horario || '',
-        r.carga_horaria || ''
+        r.carga_horaria || '6h00min'
       ])
     ];
     const wb = XLSX.utils.book_new();
