@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Painel Coordenação – Presenças ILPI</title>
+  <title>Painel Coordenação – Presenças Estágio</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -75,7 +75,7 @@
 
 <div id="painel">
   <div class="topbar">
-    <h1>📋 Presenças ILPI – Coordenação PROZ</h1>
+    <h1>📋 Presenças Estágio – Coordenação PROZ</h1>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <span id="ultimo-update" style="font-size:0.82rem;color:#aaa;align-self:center"></span>
       <button class="btn btn-green" onclick="exportarExcel()" style="padding:8px 14px;font-size:0.82rem;">⬇ Exportar Excel</button>
@@ -131,6 +131,7 @@
   function loginAdmin() {
     const s = document.getElementById('senha-admin').value;
     if (s === SENHA_ADMIN) {
+      sessionStorage.setItem('coordenacao_auth', '1');
       document.getElementById('login-admin').style.display = 'none';
       document.getElementById('painel').style.display = 'block';
       iniciar();
@@ -142,6 +143,7 @@
   document.getElementById('senha-admin').addEventListener('keydown', e => { if(e.key==='Enter') loginAdmin(); });
 
   function sairAdmin() {
+    sessionStorage.removeItem('coordenacao_auth');
     document.getElementById('login-admin').style.display = 'block';
     document.getElementById('painel').style.display = 'none';
     document.getElementById('senha-admin').value = '';
@@ -264,7 +266,7 @@
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
     ws['!cols'] = [30,18,14,22,12,10,10,14].map(w => ({wch:w}));
-    XLSX.utils.book_append_sheet(wb, ws, 'Presenças ILPI');
+    XLSX.utils.book_append_sheet(wb, ws, 'Presenças Estágio');
     XLSX.writeFile(wb, `presencas_ilpi_${new Date().toISOString().split('T')[0]}.xlsx`);
   }
 </script>

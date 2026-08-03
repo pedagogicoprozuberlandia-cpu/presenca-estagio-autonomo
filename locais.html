@@ -152,6 +152,7 @@
 
   function loginAdmin() {
     if (document.getElementById('senha-admin').value === SENHA_ADMIN) {
+      sessionStorage.setItem('coordenacao_auth', '1');
       document.getElementById('login-admin').style.display = 'none';
       document.getElementById('painel').style.display = 'block';
       carregarLocais();
@@ -161,7 +162,16 @@
     }
   }
   document.getElementById('senha-admin').addEventListener('keydown', e => { if(e.key==='Enter') loginAdmin(); });
-  function sairAdmin() { document.getElementById('login-admin').style.display='block'; document.getElementById('painel').style.display='none'; document.getElementById('senha-admin').value=''; }
+  function sairAdmin() {
+    sessionStorage.removeItem('coordenacao_auth');
+    window.location.href = 'admin.html';
+  }
+  // Verificar se já está autenticado
+  if (sessionStorage.getItem('coordenacao_auth') === '1') {
+    document.getElementById('login-admin').style.display = 'none';
+    document.getElementById('painel').style.display = 'block';
+    carregarLocais();
+  }
 
   async function supabaseFetch(path, options = {}) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
