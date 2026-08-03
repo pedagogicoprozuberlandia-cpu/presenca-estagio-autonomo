@@ -1,341 +1,1900 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Presença ILPI – PROZ</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .card { background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 32px 28px; width: 100%; max-width: 440px; }
-    .logo { text-align: center; margin-bottom: 24px; }
-    .logo h1 { font-size: 1.4rem; color: #1a1a2e; font-weight: 700; }
-    .logo p { color: #666; font-size: 0.88rem; margin-top: 4px; }
-    .badge { display: inline-block; background: #e8f4fd; color: #1565c0; border-radius: 20px; padding: 4px 14px; font-size: 0.78rem; font-weight: 600; margin-bottom: 18px; }
-    label { display: block; font-size: 0.85rem; font-weight: 600; color: #333; margin-bottom: 6px; }
-    input, select { width: 100%; padding: 12px 14px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 1rem; color: #222; margin-bottom: 16px; transition: border-color 0.2s; background: white; }
-    input:focus, select:focus { outline: none; border-color: #1565c0; }
-    .btn { width: 100%; padding: 14px; background: #1565c0; color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-bottom: 10px; }
-    .btn:hover { background: #0d47a1; }
-    .btn:disabled { background: #90a4ae; cursor: not-allowed; }
-    .btn-verde { background: #2e7d32; } .btn-verde:hover { background: #1b5e20; }
-    .btn-vermelho { background: #c62828; } .btn-vermelho:hover { background: #b71c1c; }
-    .btn-outline { background: white; color: #1565c0; border: 2px solid #1565c0; } .btn-outline:hover { background: #e8f4fd; }
-    .msg { padding: 12px 16px; border-radius: 10px; font-size: 0.88rem; margin-top: 4px; display: none; }
-    .msg.success { background: #e8f5e9; color: #2e7d32; display: block; }
-    .msg.error { background: #ffebee; color: #c62828; display: block; }
-    .step { display: none; } .step.active { display: block; }
-    .user-info { background: #f5f5f5; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 0.9rem; color: #444; }
-    .user-info strong { color: #1a1a2e; }
-    .geo-status { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 8px; font-size: 0.84rem; margin-bottom: 14px; }
-    .geo-status.checking { background: #fff8e1; color: #f57f17; }
-    .geo-status.ok { background: #e8f5e9; color: #2e7d32; }
-    .geo-status.fail { background: #ffebee; color: #c62828; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-    .dot.yellow { background: #f9a825; animation: pulse 1s infinite; }
-    .dot.green { background: #43a047; }
-    .dot.red { background: #e53935; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-    .status-box { border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: center; }
-    .status-box.entrada { background: #e8f5e9; border: 2px solid #43a047; }
-    .status-box.completo { background: #fff8e1; border: 2px solid #f9a825; }
-    .status-box .hora { font-size: 1.8rem; font-weight: 700; color: #1a1a2e; }
-    .status-box .label { font-size: 0.82rem; color: #666; margin-top: 4px; }
-    .link-admin { text-align: center; margin-top: 20px; font-size: 0.8rem; color: #999; }
-    .link-admin a { color: #1565c0; text-decoration: none; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Presença — Campo de Estágio</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh;color:#1a202c;touch-action:manipulation}
+
+/* VALIDAÇÃO */
+.field-error input,.field-error select,.field-error textarea{border-color:#dc2626!important;box-shadow:0 0 0 3px rgba(220,38,38,0.15)!important;animation:shake 0.3s ease}
+.field-error-msg{font-size:11px;color:#dc2626;font-weight:600;margin-top:4px;display:none}
+.field-error .field-error-msg{display:block}
+.acd-error{border-color:#dc2626!important}
+.acd-error .acd-header{background:#fee2e2!important}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+/* HOSPITAL SELECTOR */
+#hospital-screen{position:fixed;inset:0;background:#f0f4f8;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:24px}
+.hs-title{font-size:22px;font-weight:700;color:#1a202c;text-align:center}
+.hs-sub{font-size:14px;color:#64748b;text-align:center;margin-top:-16px}
+.hs-cards{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+.hs-card{background:#fff;border:2px solid #e2e8f0;border-radius:16px;padding:28px 36px;cursor:pointer;text-align:center;transition:all 0.2s;min-width:200px}
+.hs-card:hover{border-color:#5b21b6;box-shadow:0 4px 20px rgba(91,33,182,0.15);transform:translateY(-2px)}
+.hs-card .hs-icon{font-size:36px;margin-bottom:10px}
+.hs-card .hs-nome{font-size:16px;font-weight:700;color:#1a202c}
+.hs-card .hs-sub{font-size:12px;color:#64748b;margin-top:4px}
+.hs-proz{font-size:12px;color:#94a3b8;margin-top:8px}
+
+/* TOPBAR */
+.topbar{background:#5b21b6;color:white;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar-logo{font-size:13px;font-weight:700;line-height:1.3;letter-spacing:0.3px}
+.topbar-logo span{display:block;font-size:11px;font-weight:400;opacity:0.8}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:#ccc;display:inline-block;margin-right:4px}
+.conn-dot.ok{background:#4ade80}.conn-dot.err{background:#f87171}
+.conn-lbl{font-size:12px;opacity:0.85}
+.btn-trocar{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:white;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}
+.btn-trocar:hover{background:rgba(255,255,255,0.3)}
+
+/* HOSPITAL BADGE no topbar */
+.hosp-badge{background:rgba(255,255,255,0.2);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;margin-left:8px}
+
+.layout{display:flex;min-height:calc(100vh - 56px)}
+.sidebar{width:220px;background:#fff;border-right:1px solid #e2e8f0;flex-shrink:0;padding:16px 0}
+.nav-section{padding:0 12px;margin-bottom:4px}
+.nav-section-title{font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:1px;text-transform:uppercase;padding:8px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:14px;color:#475569;transition:all 0.15s;border:none;background:none;width:100%;text-align:left}
+.nav-item svg{flex-shrink:0;opacity:0.7}
+.nav-item:hover{background:#f5f3ff;color:#5b21b6}
+.nav-item.active{background:#ede9fe;color:#5b21b6;font-weight:600}
+.nav-item.active svg{opacity:1}
+
+.main{flex:1;padding:28px;overflow-y:auto}
+.page{display:none}.page.active{display:block}
+.page-title{font-size:20px;font-weight:700;color:#1a202c;margin-bottom:4px}
+.page-sub{font-size:13px;color:#64748b;margin-bottom:24px}
+
+.card{background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.card-title{font-size:14px;font-weight:700;color:#374151;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.metric{background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.metric-val{font-size:26px;font-weight:700;color:#5b21b6}
+.metric-lbl{font-size:12px;color:#64748b;margin-top:4px}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-grid.three{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:12px;font-weight:600;color:#475569;letter-spacing:0.3px}
+.form-group input,.form-group select,.form-group textarea{padding:9px 12px;font-size:14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#1a202c;transition:border 0.15s;outline:none}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#5b21b6;box-shadow:0 0 0 3px rgba(91,33,182,0.1)}
+.form-group textarea{resize:vertical;min-height:70px}
+.required-star{color:#dc2626;margin-left:2px}
+
+.sit-btns{display:flex;gap:10px;margin-top:2px}
+.sit-btn{flex:1;padding:14px 10px;border-radius:10px;border:2px solid #e2e8f0;background:#f8fafc;cursor:pointer;font-size:15px;font-weight:700;color:#64748b;transition:all 0.15s;text-align:center;line-height:1.3;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.sit-btn:hover{border-color:#94a3b8;background:#f1f5f9}
+.sit-btn.presente.selected{border-color:#5b21b6;background:#ede9fe;color:#4c1d95}
+.sit-btn.ausente.selected{border-color:#dc2626;background:#fee2e2;color:#991b1b}
+.sit-btn .sit-icon{font-size:22px;display:block;margin-bottom:4px}
+
+.alunos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;max-height:260px;overflow-y:auto;padding:2px}
+.aluno-card{border:2px solid #e2e8f0;border-radius:10px;padding:12px 14px;cursor:pointer;background:#f8fafc;transition:all 0.15s;position:relative;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:manipulation}
+.aluno-card:hover{border-color:#94a3b8;background:#f1f5f9}
+.aluno-card.selected{border-color:#5b21b6;background:#ede9fe}
+.aluno-card .ac-nome{font-size:13px;font-weight:700;color:#1a202c;margin-bottom:2px;padding-right:20px}
+.aluno-card .ac-turma{font-size:11px;color:#64748b}
+.aluno-card.selected .ac-nome{color:#4c1d95}
+.aluno-card .ac-check{position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;border:2px solid #d1d5db;background:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent;transition:all 0.15s}
+.aluno-card.selected .ac-check{background:#5b21b6;border-color:#5b21b6;color:white}
+.alunos-sel-info{font-size:12px;color:#5b21b6;font-weight:600;margin-bottom:8px;min-height:18px}
+
+.campos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;max-height:180px;overflow-y:auto;padding:2px}
+.campo-card{border:2px solid #e2e8f0;border-radius:10px;padding:11px 14px;cursor:pointer;background:#f8fafc;transition:all 0.15s;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:manipulation}
+.campo-card:hover{border-color:#94a3b8;background:#f1f5f9}
+.campo-card.selected{border-color:#5b21b6;background:#ede9fe}
+.campo-card .cc-nome{font-size:13px;font-weight:700;color:#1a202c}
+.campo-card.selected .cc-nome{color:#4c1d95}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer;border:none;transition:all 0.15s}
+.btn-primary{background:#5b21b6;color:#fff}.btn-primary:hover{background:#4c1d95}
+.btn-secondary{background:#f1f5f9;color:#374151;border:1px solid #d1d5db}.btn-secondary:hover{background:#e2e8f0}
+.btn-danger{background:#fee2e2;color:#dc2626}.btn-danger:hover{background:#fecaca}
+.btn-excel{background:#217346;color:#fff}.btn-excel:hover{background:#185a38}
+.btn-sm{padding:6px 12px;font-size:12px}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;background:#f8fafc;border-bottom:2px solid #e2e8f0;color:#475569;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#374151;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8fafc}
+
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.3px}
+.badge-p{background:#ede9fe;color:#4c1d95}
+.badge-f{background:#fee2e2;color:#991b1b}
+
+.alert{padding:12px 16px;border-radius:8px;font-size:13px;font-weight:500;margin-bottom:16px;display:none}
+.alert-success{background:#ede9fe;color:#4c1d95;border:1px solid #c4b5fd}
+.alert-error{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.alert-info{background:#e0f2fe;color:#075985;border:1px solid #bae6fd}
+
+.prog-wrap{background:#e2e8f0;border-radius:4px;height:8px;margin-top:5px;overflow:hidden}
+.prog-fill{height:8px;border-radius:4px;background:#5b21b6;transition:width 0.4s}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.filters select,.filters input{padding:7px 10px;font-size:13px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#374151;outline:none}
+.filters select:focus,.filters input:focus{border-color:#5b21b6}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:700;color:#1a202c;margin-bottom:20px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:32px;color:#94a3b8;font-size:14px}
+
+#loading-screen{position:fixed;inset:0;background:#f0f4f8;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:998;gap:12px}
+#loading-screen p{color:#64748b;font-size:14px}
+.loader-ring{width:40px;height:40px;border:4px solid #ede9fe;border-top-color:#5b21b6;border-radius:50%;animation:spin 0.8s linear infinite}
+
+.config-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:16px}
+.config-box h3{font-size:13px;font-weight:700;color:#374151;margin-bottom:12px}
+.code-block{background:#1a202c;color:#a3e635;padding:14px;border-radius:8px;font-family:'Courier New',monospace;font-size:11px;line-height:1.6;white-space:pre;overflow-x:auto;margin:10px 0}
+
+.obs-wrap{display:none;margin-bottom:14px}
+.obs-wrap.visible{display:block}
+.obs-aviso{font-size:12px;color:#dc2626;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+
+/* TURNO BUTTONS */
+.turno-btn{flex:1;padding:10px 6px;border-radius:10px;border:2px solid #e2e8f0;background:#f8fafc;cursor:pointer;font-size:13px;font-weight:600;color:#64748b;transition:all 0.15s;text-align:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.turno-btn:hover{border-color:#94a3b8;background:#f1f5f9}
+.turno-btn.selected{border-color:#5b21b6;background:#ede9fe;color:#4c1d95}
+
+/* ACORDEÃO DE SELEÇÃO */
+.acd-item{border:1px solid #e2e8f0;border-radius:10px;margin-bottom:8px;overflow:hidden}
+.acd-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;background:#f8fafc;transition:background 0.15s;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.acd-header:hover{background:#f1f5f9}
+.acd-header.done{background:#ede9fe;border-color:#5b21b6}
+.acd-left{display:flex;align-items:center;gap:10px}
+.acd-num{width:24px;height:24px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#64748b;flex-shrink:0}
+.acd-header.done .acd-num{background:#5b21b6;color:white}
+.acd-label{font-size:14px;font-weight:600;color:#374151}
+.acd-header.done .acd-label{color:#4c1d95}
+.acd-value{font-size:12px;color:#5b21b6;font-weight:600;margin-left:8px}
+.acd-arrow{font-size:12px;color:#94a3b8;transition:transform 0.2s}
+.acd-header.open .acd-arrow{transform:rotate(180deg)}
+.acd-body{display:none;padding:14px;border-top:1px solid #e2e8f0;background:#fff}
+.acd-body.open{display:block}
+
+/* ABAS DO REGISTRO */
+.reg-tabs{display:flex;gap:0;border-bottom:2px solid #e2e8f0;margin-bottom:16px}
+.reg-tab{padding:10px 20px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s;display:flex;align-items:center;gap:6px}
+.reg-tab:hover{color:#5b21b6}
+.reg-tab.active{color:#5b21b6;border-bottom-color:#5b21b6}
+.reg-tab .tab-check{width:18px;height:18px;border-radius:50%;background:#e2e8f0;display:inline-flex;align-items:center;justify-content:center;font-size:10px}
+.reg-tab.done .tab-check{background:#5b21b6;color:white}
+.reg-panel{display:none}.reg-panel.active{display:block}
+
+/* JUSTIFICATIVA BUTTONS */
+.just-btn{padding:10px 14px;border-radius:10px;border:2px solid #e2e8f0;background:#f8fafc;cursor:pointer;font-size:13px;font-weight:600;color:#374151;transition:all 0.15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.just-btn:hover{border-color:#94a3b8;background:#f1f5f9}
+.just-btn.selected{border-color:#5b21b6;background:#ede9fe;color:#4c1d95}
+
+/* ALUNOS LIST */
+.alunos-list{display:flex;flex-direction:column;gap:8px}
+.aluno-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;flex-wrap:wrap}
+.aluno-row-info{flex:1;min-width:0}
+.aluno-row-nome{font-size:14px;font-weight:700;color:#1a202c;margin-bottom:3px}
+.aluno-row-detail{font-size:12px;color:#64748b;line-height:1.5}
+.aluno-row-btns{display:flex;gap:6px;flex-shrink:0}
+
+/* MOBILE MENU */
+.btn-menu{display:none;background:rgba(255,255,255,0.2);border:none;color:white;font-size:20px;padding:6px 10px;border-radius:6px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:50}
+.sidebar-overlay.open{display:block}
+@media(max-width:700px){
+  .btn-menu{display:inline-flex;align-items:center;justify-content:center}
+  .sidebar{display:none;position:fixed;top:56px;left:0;bottom:0;z-index:60;width:240px;overflow-y:auto;box-shadow:4px 0 16px rgba(0,0,0,0.2)}
+  .sidebar.open{display:block}
+  .metrics{grid-template-columns:1fr 1fr}
+  .form-grid{grid-template-columns:1fr}
+  .form-grid.three{grid-template-columns:1fr}
+  .sit-btns{flex-direction:column}
+  .hs-cards{flex-direction:column;align-items:center}
+}
+</style>
 </head>
 <body>
-<div class="card">
-  <div class="logo">
-    <h1>📍 Presença ILPI</h1>
-    <p>PROZ Educação – Técnico em Enfermagem</p>
-  </div>
 
-  <!-- STEP 1: Login -->
-  <div class="step active" id="step-login">
-    <div class="badge">Acesso do Aluno</div>
-    <label for="cpf">CPF</label>
-    <input type="text" id="cpf" placeholder="Digite seu CPF (só números)" inputmode="numeric" maxlength="11" />
-    <button class="btn" onclick="fazerLogin()">Entrar</button>
-    <div class="msg" id="msg-login"></div>
-  </div>
+<!-- LOADING -->
+<div id="loading-screen" style="display:none">
+  <div class="loader-ring"></div>
+  <p id="loading-txt">Carregando...</p>
+</div>
 
-  <!-- STEP 2: Selecionar local e registrar -->
-  <div class="step" id="step-presenca">
-    <div class="badge">Registrar Presença</div>
-    <div class="user-info" id="user-info"></div>
-    <label for="local">Local de Estágio</label>
-    <select id="local">
-      <option value="">Carregando locais...</option>
-    </select>
-    <div class="geo-status checking" id="geo-status">
-      <span class="dot yellow"></span>
-      <span>Aguardando seleção do local...</span>
+<!-- HOSPITAL SELECTOR -->
+<div id="hospital-screen">
+  <div class="hs-title">Presença — Campo de Estágio</div>
+  <div class="hs-sub">Selecione o hospital para continuar</div>
+  <div class="hs-cards">
+    <div class="hs-card" onclick="selectHospital('clara')">
+      <div class="hs-icon">🏥</div>
+      <div class="hs-nome">Clara</div>
+      <div class="hs-sub">Registrar presenças</div>
     </div>
-    <div id="status-entrada" style="display:none"></div>
-    <button class="btn btn-verde" id="btn-entrada" onclick="registrar('entrada')" disabled>🟢 Registrar Entrada</button>
-    <button class="btn btn-vermelho" id="btn-saida" onclick="registrar('saida')" disabled style="display:none">🔴 Registrar Saída</button>
-    <button class="btn btn-outline" onclick="sair()">Sair</button>
-    <div class="msg" id="msg-presenca"></div>
-  </div>
-
-  <!-- STEP 3: Confirmação -->
-  <div class="step" id="step-ok">
-    <div style="text-align:center;padding:16px 0 8px;">
-      <div style="font-size:3rem;" id="confirm-icon">✅</div>
-      <h2 style="margin:12px 0 8px;" id="confirm-titulo">Registrado!</h2>
-      <p style="color:#555;" id="confirm-text"></p>
+    <div class="hs-card" onclick="selectHospital('genoveva')">
+      <div class="hs-icon">🏥</div>
+      <div class="hs-nome">Genoveva</div>
+      <div class="hs-sub">Registrar presenças</div>
     </div>
-    <div id="confirm-horas" style="display:none;background:#e8f5e9;border-radius:10px;padding:16px;text-align:center;margin:14px 0;">
-      <div style="font-size:0.85rem;color:#555;">Carga horária do dia</div>
-      <div style="font-size:2rem;font-weight:700;color:#2e7d32;" id="confirm-total"></div>
-    </div>
-    <button class="btn" onclick="novoRegistro()">Novo Registro</button>
   </div>
+  <div class="hs-proz">PROZ Educação Uberlândia</div>
+</div>
 
-  <div class="link-admin"><a href="admin.html">Acesso Coordenação →</a></div>
+<!-- TOPBAR -->
+<div class="topbar" id="topbar" style="display:none">
+  <div class="topbar-left">
+    <button class="btn-menu" onclick="toggleSidebar()">☰</button>
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="rgba(255,255,255,0.15)"/><path d="M7 20V11l7-4 7 4v9" stroke="white" stroke-width="1.5" stroke-linejoin="round"/><rect x="11" y="15" width="6" height="5" rx="1" fill="white" opacity="0.9"/></svg>
+    <div class="topbar-logo">
+      Presença — Campo de Estágio / <span id="topbar-hosp-nome" style="display:inline;opacity:1;font-size:13px"></span>
+      <span>PROZ Educação Uberlândia</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="conn-dot" id="conn-dot"></span>
+    <span class="conn-lbl" id="conn-lbl">Conectando...</span>
+    <button class="btn-trocar" onclick="trocarHospital()" style="margin-left:12px">⇄ Trocar hospital</button>
+  </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="layout" id="layout" style="display:none">
+  <nav class="sidebar">
+    <div class="nav-section">
+      <div class="nav-section-title">Principal</div>
+      <button class="nav-item active" onclick="goPage('presenca',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        Registrar presença
+      </button>
+      <button class="nav-item" onclick="goPage('alunos',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Alunos
+      </button>
+      <button class="nav-item" onclick="openImport()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Importar lista
+      </button>
+      <button class="nav-item" onclick="goPage('campos',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Setores de estágio
+      </button>
+      <button class="nav-item" onclick="goPage('busca',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Buscar aluno
+      </button>
+      <button class="nav-item" onclick="goPage('relatorio',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 17V13M12 17V9M16 17v-4"/></svg>
+        Relatório
+      </button>
+    </div>
+    <div class="nav-section" style="margin-top:8px">
+      <div class="nav-section-title">Exportar</div>
+      <button class="nav-item" onclick="exportExcel()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Baixar Excel
+      </button>
+    </div>
+    <div class="nav-section" style="margin-top:8px">
+      <div class="nav-section-title">Administração</div>
+      <button class="nav-item" onclick="openReset()" style="color:#dc2626">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+        Resetar sistema
+      </button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div id="alert-global" class="alert"></div>
+
+    <!-- PAGE: PRESENÇA -->
+    <div id="page-presenca" class="page active">
+      <div class="page-title">Registrar Presença</div>
+      <div class="page-sub" id="sub-presenca">Selecione o setor, o aluno e marque a situação</div>
+      <div class="card">
+        <div class="card-title"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Dados do registro</div>
+
+        <div class="form-grid three" style="margin-bottom:18px">
+          <div class="form-group" id="fg-data">
+            <label>Data do estágio <span class="required-star">*</span></label>
+            <input type="date" id="r-data" onchange="carregarLancadosHoje();clearError('fg-data')"/>
+            <span class="field-error-msg">Informe a data</span>
+          </div>
+          <div class="form-group" id="fg-turno" style="grid-column:span 2">
+            <label>Turno <span class="required-star">*</span></label>
+            <div style="display:flex;gap:8px;margin-top:2px">
+              <button class="turno-btn" onclick="setTurno('Manhã')" id="turno-Manhã">🌅 Manhã</button>
+              <button class="turno-btn" onclick="setTurno('Tarde')" id="turno-Tarde">🌤️ Tarde</button>
+              <button class="turno-btn" onclick="setTurno('Noite')" id="turno-Noite">🌙 Noite</button>
+              
+            </div>
+            <input type="hidden" id="r-turno"/>
+            <span class="field-error-msg">Selecione o turno</span>
+          </div>
+        </div>
+
+        <!-- ACORDEÃO: Preceptor / Aluno / Campo -->
+        <div style="margin-bottom:18px">
+
+          <!-- PRECEPTOR -->
+          <div class="acd-item" id="acd-preceptor">
+            <div class="acd-header" id="acdh-preceptor" onclick="toggleAcd('preceptor')">
+              <div class="acd-left">
+                <div class="acd-num" id="acdn-preceptor">1</div>
+                <span class="acd-label">Preceptor <span class="required-star">*</span></span>
+                <span class="acd-value" id="acdv-preceptor"></span>
+              </div>
+              <span class="acd-arrow">▼</span>
+            </div>
+            <div class="acd-body" id="acdb-preceptor">
+              <div class="alunos-grid" id="preceptores-grid"><div class="empty" style="padding:12px;font-size:13px">Nenhum preceptor cadastrado.</div></div>
+              <input type="hidden" id="r-preceptor-sel"/>
+            </div>
+          </div>
+
+          <!-- ALUNO -->
+          <div class="acd-item" id="acd-aluno">
+            <div class="acd-header" id="acdh-aluno" onclick="toggleAcd('aluno')">
+              <div class="acd-left">
+                <div class="acd-num" id="acdn-aluno">2</div>
+                <span class="acd-label">Aluno</span>
+                <span class="acd-value" id="acdv-aluno"></span>
+              </div>
+              <span class="acd-arrow">▼</span>
+            </div>
+            <div class="acd-body" id="acdb-aluno">
+              <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+                <input type="text" id="busca-aluno-reg" placeholder="👥 Buscar aluno do dia..." oninput="filtrarAlunosReg()" style="flex:1;min-width:140px;font-size:13px;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;outline:none"/>
+                <input type="text" id="rep-busca" placeholder="🔄 Reposição..." oninput="buscarReposicao()" style="flex:1;min-width:140px;font-size:13px;padding:7px 10px;border:1px solid #f59e0b;border-radius:8px;outline:none;background:#fffbeb"/>
+              </div>
+              <div style="display:flex;gap:6px;margin-bottom:8px">
+                <button class="btn btn-secondary btn-sm" onclick="selecionarTodos()">Selecionar todos</button>
+                <button class="btn btn-secondary btn-sm" onclick="deselecionarTodos()">Limpar</button>
+              </div>
+              <div class="alunos-sel-info" id="alunos-sel-info"></div>
+              <div class="alunos-grid" id="alunos-grid-reg"><div class="empty" style="padding:12px;font-size:13px">Nenhum aluno cadastrado.</div></div>
+              <div id="rep-lista"></div>
+              <input type="hidden" id="r-aluno-id"/>
+            </div>
+          </div>
+
+          <!-- CAMPO (automático, oculto do preceptor) -->
+          <div id="campo-auto-info" style="display:none;background:#ede9fe;border:1px solid #c4b5fd;border-radius:10px;padding:12px 16px;margin-top:8px;font-size:13px;color:#4c1d95">
+            <strong>📍 Setor de estágio:</strong> <span id="campo-auto-nome"></span>
+          </div>
+          <div id="campo-auto-aviso" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:12px 16px;margin-top:8px;font-size:13px;color:#991b1b">
+            ⚠️ Os alunos selecionados não têm o mesmo setor de estágio cadastrado, ou não há campo cadastrado para eles. Avise a coordenação para completar o cadastro.
+          </div>
+          <div style="display:none">
+            <div class="campos-grid" id="campos-grid"></div>
+            <input type="hidden" id="r-campo-id"/>
+          </div>
+
+        </div>
+
+        <div style="margin-top:18px">
+          <div class="form-group" style="margin-bottom:14px">
+            <label>Situação <span class="required-star">*</span></label>
+            <div class="sit-btns">
+              <button class="sit-btn presente" onclick="setSituacao('P')" id="sit-P"><span class="sit-icon">✅</span>Presente</button>
+              <button class="sit-btn ausente" onclick="setSituacao('F')" id="sit-F"><span class="sit-icon">❌</span>Ausente</button>
+            </div>
+            <input type="hidden" id="r-situacao"/>
+          </div>
+          <div class="obs-wrap" id="obs-wrap">
+            <div class="obs-aviso"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Selecione a justificativa da ausência</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px" id="just-btns">
+              <button class="just-btn" onclick="setJustificativa('Atestado médico')">🏥 Atestado médico</button>
+              <button class="just-btn" onclick="setJustificativa('Falta sem justificativa')">❌ Falta sem justificativa</button>
+              <button class="just-btn" onclick="setJustificativa('Falta de transporte da cidade de origem')">🚌 Falta de transporte da cidade de origem</button>
+              <button class="just-btn" onclick="setJustificativa('outros')">✏️ Outros</button>
+            </div>
+            <div class="form-group" id="obs-campo-livre" style="display:none">
+              <label>Descreva o motivo <span class="required-star">*</span></label>
+              <textarea id="r-obs" placeholder="Descreva o motivo da ausência..."></textarea>
+            </div>
+            <input type="hidden" id="r-obs-val"/>
+          </div>
+          <button class="btn btn-primary" onclick="addRegistro()" id="btn-add-reg">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Registrar presença
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+          <div class="card-title" style="margin:0">Registros do aluno</div>
+          <div class="filters" style="margin:0">
+            <input type="date" id="f-data" onchange="loadRegistros()"/>
+            <select id="f-aluno-r" onchange="loadRegistros()"><option value="">Todos os alunos</option></select>
+            <select id="f-sit" onchange="loadRegistros()"><option value="">Todas as situações</option><option value="P">Presentes</option><option value="F">Ausentes</option></select>
+          </div>
+        </div>
+        <div class="table-wrap" id="registros-table"><div class="empty">Carregando registros...</div></div>
+      </div>
+    </div>
+
+    <!-- PAGE: ALUNOS -->
+    <div id="page-alunos" class="page">
+      <div class="page-title">Alunos</div>
+      <div class="page-sub" id="sub-alunos">Cadastre os alunos</div>
+      <div class="card">
+        <div class="card-title"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Novo aluno</div>
+        <div class="form-grid three">
+          <div class="form-group" id="fg-a-nome">
+            <label>Nome completo <span class="required-star">*</span></label>
+            <input type="text" id="a-nome" placeholder="Nome do aluno" oninput="clearError('fg-a-nome')"/>
+            <span class="field-error-msg">Informe o nome do aluno</span>
+          </div>
+          <div class="form-group"><label>Preceptor responsável</label><input type="text" id="a-turma" placeholder="Nome do preceptor"/></div>
+          <div class="form-group" id="fg-a-turno"><label>Turno <span class="required-star">*</span></label>
+            <select id="a-turno-sel" onchange="clearError('fg-a-turno')">
+              <option value="">— selecione —</option>
+              <option value="Manhã">🌅 Manhã</option>
+              <option value="Tarde">🌤️ Tarde</option>
+              <option value="Noite">🌙 Noite</option>
+              
+            </select>
+            <span class="field-error-msg">Selecione o turno</span>
+          </div>
+        </div>
+        <div class="form-grid" style="max-width:500px">
+          <div class="form-group"><label>Setor de estágio</label>
+            <select id="a-campo-sel">
+              <option value="">— selecione —</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Escala</label>
+            <select id="a-escala">
+              <option value="todos">📅 Todos os dias</option>
+              <option value="impar">1️⃣ Dias ímpares</option>
+              <option value="par">2️⃣ Dias pares</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addAluno()" id="btn-add-aluno">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Cadastrar aluno
+        </button>
+      </div>
+      <div class="card">
+        <div class="filters"><input type="text" id="f-busca-aluno" placeholder="Buscar por nome ou preceptor..." oninput="loadAlunos()" style="min-width:240px"/></div>
+        <div class="table-wrap" id="alunos-table"><div class="empty">Carregando alunos...</div></div>
+      </div>
+    </div>
+
+    <!-- PAGE: CAMPOS -->
+    <div id="page-campos" class="page">
+      <div class="page-title">Campos de Estágio</div>
+      <div class="page-sub" id="sub-campos">Cadastre os setores de estágio</div>
+      <div class="card">
+        <div class="card-title"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Novo setor de estágio</div>
+        <div class="form-grid" style="max-width:480px">
+          <div class="form-group"><label>Nome do local <span class="required-star">*</span></label><input type="text" id="c-nome" placeholder="Ex: UTI, Clínica Médica, Pronto-socorro..."/></div>
+        </div>
+        <button class="btn btn-primary" onclick="addCampo()" id="btn-add-campo">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Cadastrar setor
+        </button>
+      </div>
+      <div class="card">
+        <div class="card-title">Campos cadastrados</div>
+        <div class="table-wrap" id="campos-table"><div class="empty">Nenhum setor cadastrado.</div></div>
+      </div>
+    </div>
+
+    <!-- PAGE: BUSCA -->
+    <div id="page-busca" class="page">
+      <div class="page-title">Buscar Aluno</div>
+      <div class="page-sub">Busque qualquer aluno — inclusive para lançar reposição de estágio</div>
+      <div class="card">
+        <input type="text" id="busca-global-input" placeholder="Digite o nome do aluno..." style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #d1d5db;border-radius:8px;outline:none" oninput="buscarAluno()"/>
+      </div>
+      <div style="font-size:13px;color:#64748b;margin-bottom:12px" id="busca-hint" style="display:none">
+        👆 Clique no aluno para adicioná-lo à lista de presença do dia atual
+      </div>
+      <div id="busca-resultado"></div>
+    </div>
+
+    <!-- PAGE: RELATÓRIO -->
+    <div id="page-relatorio" class="page">
+      <div class="page-title">Relatório de Frequência</div>
+      <div class="page-sub" id="sub-relatorio">Frequência dos alunos</div>
+      <div class="metrics" id="metrics-row">
+        <div class="metric"><div class="metric-val" id="m-alunos">—</div><div class="metric-lbl">Alunos</div></div>
+        <div class="metric"><div class="metric-val" id="m-presencas" style="color:#5b21b6">—</div><div class="metric-lbl">Presenças</div></div>
+        <div class="metric"><div class="metric-val" id="m-faltas" style="color:#dc2626">—</div><div class="metric-lbl">Ausências</div></div>
+        <div class="metric"><div class="metric-val" id="m-freq">—</div><div class="metric-lbl">Frequência geral</div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+          <div class="card-title" style="margin:0">Frequência por aluno</div>
+          <button class="btn btn-excel btn-sm" onclick="exportExcel()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar Excel
+          </button>
+        </div>
+        <div class="table-wrap" id="relatorio-table"><div class="empty">Carregando relatório...</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="overlay" id="import-overlay">
+  <div class="modal" style="width:560px">
+    <div class="modal-title">📋 Importar lista de alunos</div>
+
+    <div style="background:#ede9fe;border:1px solid #c4b5fd;border-radius:10px;padding:16px;margin-bottom:16px">
+      <p style="font-size:13px;font-weight:700;color:#4c1d95;margin-bottom:8px">📌 Como montar a planilha Excel:</p>
+      <p style="font-size:13px;color:#4c1d95;line-height:1.8">
+        A planilha deve ter exatamente <strong>5 colunas</strong>, nesta ordem:<br>
+        <strong>Coluna A</strong> → Nome do aluno<br>
+        <strong>Coluna B</strong> → Nome do preceptor<br>
+        <strong>Coluna C</strong> → Turno (Manhã, Tarde, Noite )<br>
+        <strong>Coluna D</strong> → Setor de estágio<br>
+        <strong>Coluna E</strong> → Escala (todos, impar ou par)<br><br>
+        ⚠️ A <strong>primeira linha</strong> deve ser o cabeçalho (ex: Nome | Preceptor | Turno | Setor | Escala)<br>
+        ⚠️ Os alunos começam a partir da <strong>linha 2</strong>
+      </p>
+      <div style="background:#fff;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;font-family:'Courier New',monospace;color:#374151">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px;font-weight:700;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:4px">
+          <span>Nome</span><span>Preceptor</span><span>Turno</span><span>Setor</span><span>Escala</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px">
+          <span>Ana Silva</span><span>Dr. João</span><span>Manhã</span><span>UTI</span><span>impar</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px">
+          <span>Bruno Costa</span><span>Dra. Maria</span><span>Tarde</span><span>Clínica</span><span>par</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px">
+          <span>Camila Ramos</span><span>Enf. Lúcia</span><span>Noite</span><span>PS</span><span>todos</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:16px">
+      <label>Selecione o arquivo Excel (.xlsx)</label>
+      <input type="file" id="import-file" accept=".xlsx,.xls" style="padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;width:100%"/>
+    </div>
+
+    <div id="import-preview" style="display:none;margin-bottom:16px">
+      <p style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px" id="import-preview-txt"></p>
+      <div style="max-height:160px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px" id="import-preview-table"></div>
+    </div>
+
+    <div id="import-error" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:12px;font-size:13px;color:#991b1b;margin-bottom:16px"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeImport()">Cancelar</button>
+      <button class="btn btn-primary" onclick="doImport()" id="btn-import" style="display:none">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Importar alunos
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- RESET MODAL -->
+<div class="overlay" id="reset-overlay">
+  <div class="modal" style="width:460px">
+    <div class="modal-title">🗑️ Resetar sistema</div>
+    <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:16px;margin-bottom:16px">
+      <p style="font-size:14px;font-weight:700;color:#991b1b;margin-bottom:6px">⚠️ Atenção! Esta ação não pode ser desfeita.</p>
+      <p style="font-size:13px;color:#991b1b;line-height:1.6">Serão apagados permanentemente os dados do hospital selecionado:<br>• Todos os alunos cadastrados<br>• Todos os campos de estágio<br>• Todos os registros de presença</p>
+    </div>
+    <p style="font-size:13px;color:#374151;margin-bottom:16px">Antes de resetar, certifique-se de ter <strong>baixado o Excel</strong> com os dados desta turma.</p>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Senha de administrador</label>
+      <input type="password" id="reset-senha-input" placeholder="Digite a senha"/>
+    </div>
+    <div class="form-group" style="margin-bottom:20px">
+      <label>Digite <strong>CONFIRMAR</strong> para prosseguir</label>
+      <input type="text" id="reset-confirm-input" placeholder="Digite CONFIRMAR"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeReset()">Cancelar</button>
+      <button class="btn btn-danger" onclick="doReset()" id="btn-reset" style="background:#dc2626;color:white">Apagar tudo e resetar</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT REGISTRO MODAL -->
+<div class="overlay" id="edit-reg-overlay">
+  <div class="modal" style="width:500px">
+    <div class="modal-title">✏️ Editar registro</div>
+    <input type="hidden" id="edit-reg-id"/>
+    <div class="form-grid three" style="margin-bottom:14px">
+      <div class="form-group">
+        <label>Data</label>
+        <input type="date" id="edit-reg-data"/>
+      </div>
+      <div class="form-group" style="grid-column:span 2">
+        <label>Turno</label>
+        <div style="display:flex;gap:8px;margin-top:2px">
+          <button class="turno-btn" onclick="setEditTurno('Manhã')" id="eturno-Manhã">🌅 Manhã</button>
+          <button class="turno-btn" onclick="setEditTurno('Tarde')" id="eturno-Tarde">🌤️ Tarde</button>
+          <button class="turno-btn" onclick="setEditTurno('Noite')" id="eturno-Noite">🌙 Noite</button>
+        </div>
+        <input type="hidden" id="edit-reg-turno"/>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Situação</label>
+      <div class="sit-btns">
+        <button class="sit-btn presente" onclick="setEditSituacao('P')" id="esit-P"><span class="sit-icon">✅</span>Presente</button>
+        <button class="sit-btn ausente" onclick="setEditSituacao('F')" id="esit-F"><span class="sit-icon">❌</span>Ausente</button>
+      </div>
+      <input type="hidden" id="edit-reg-situacao"/>
+    </div>
+    <div class="form-group" style="margin-bottom:20px" id="edit-reg-obs-wrap">
+      <label>Justificativa</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px" id="edit-just-btns">
+        <button class="just-btn" onclick="setEditJust('Atestado médico')">🏥 Atestado médico</button>
+        <button class="just-btn" onclick="setEditJust('Falta sem justificativa')">❌ Falta sem justificativa</button>
+        <button class="just-btn" onclick="setEditJust('Falta de transporte da cidade de origem')">🚌 Falta de transporte da cidade de origem</button>
+        <button class="just-btn" onclick="setEditJust('outros')">✏️ Outros</button>
+      </div>
+      <div id="edit-obs-livre" style="display:none">
+        <textarea id="edit-reg-obs" placeholder="Descreva o motivo..." style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;min-height:60px;resize:vertical"></textarea>
+      </div>
+      <input type="hidden" id="edit-reg-obs-val"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="document.getElementById('edit-reg-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditRegistro()" id="btn-save-reg">Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT ALUNO MODAL -->
+<div class="overlay" id="edit-aluno-overlay">
+  <div class="modal" style="width:460px">
+    <div class="modal-title">✏️ Editar aluno</div>
+    <input type="hidden" id="edit-aluno-id"/>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Nome completo <span class="required-star">*</span></label>
+      <input type="text" id="edit-aluno-nome" placeholder="Nome do aluno"/>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Preceptor responsável</label>
+      <input type="text" id="edit-aluno-preceptor" placeholder="Nome do preceptor"/>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Turno</label>
+      <select id="edit-aluno-turno">
+        <option value="">— selecione —</option>
+        <option value="Manhã">🌅 Manhã</option>
+        <option value="Tarde">🌤️ Tarde</option>
+        <option value="Noite">🌙 Noite</option>
+        
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Setor de estágio</label>
+      <select id="edit-aluno-setor"><option value="">— selecione —</option></select>
+    </div>
+    <div class="form-group" style="margin-bottom:20px">
+      <label>Escala</label>
+      <select id="edit-aluno-escala">
+        <option value="todos">📅 Todos os dias</option>
+        <option value="impar">1️⃣ Dias ímpares</option>
+        <option value="par">2️⃣ Dias pares</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="document.getElementById('edit-aluno-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditAluno()" id="btn-save-edit">Salvar alterações</button>
+    </div>
+  </div>
 </div>
 
 <script>
-  const SUPABASE_URL = 'https://popryznbbmzbzaowfeoc.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvcHJ5em5iYm16Ynphb3dmZW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDI3NDcsImV4cCI6MjA5Nzk3ODc0N30.xkPhLr-76Vtdo5yTC4hJRg52aM4-8bwQyGBqtzouJKE';
-  const RAIO_METROS = 200;
+const SUPABASE_URL='https://popryznbbmzbzaowfeoc.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvcHJ5em5iYm16Ynphb3dmZW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDI3NDcsImV4cCI6MjA5Nzk3ODc0N30.xkPhLr-76Vtdo5yTC4hJRg52aM4-8bwQyGBqtzouJKE';
 
-  let alunoLogado = null;
-  let locaisCache = [];
+const HOSPITAIS={
+  clara:{nome:'Clara',prefixo:'clara_'},
+  genoveva:{nome:'Genoveva',prefixo:'genoveva_'}
+};
 
-  async function supabaseFetch(path, options = {}) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...options.headers },
-      ...options
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || JSON.stringify(data));
-    return data;
+let sb=null;
+let HOSPITAL=null;
+let ALUNOS=[];
+let CAMPOS=[];
+let PRECEPTORES=[];
+let selectedSituacao='';
+let ALUNOS_SEL=new Set();
+
+// Tabelas com prefixo por hospital
+function tbl(base){return HOSPITAL.prefixo+base;}
+
+async function selectHospital(id){
+  HOSPITAL={id,...HOSPITAIS[id]};
+  document.getElementById('hospital-screen').style.display='none';
+  document.getElementById('loading-screen').style.display='flex';
+  document.getElementById('loading-txt').textContent='Conectando ao '+HOSPITAL.nome+'...';
+  document.getElementById('topbar-hosp-nome').textContent=HOSPITAL.nome;
+
+  if(!sb) sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+  try{
+    const{error}=await sb.from(tbl('alunos')).select('id').limit(1);
+    if(error)throw error;
+    setConn('Conectado','ok');
+  }catch(e){
+    setConn('Erro','err');
   }
 
-  // Carregar locais do banco ao abrir
-  async function carregarLocais() {
-    try {
-      const locais = await supabaseFetch('/locais_ilpi?ativo=eq.true&order=nome.asc');
-      locaisCache = locais;
-      const sel = document.getElementById('local');
-      sel.innerHTML = '<option value="">Selecione o local...</option>' +
-        locais.map(l => `<option value="${l.id}" data-lat="${l.latitude}" data-lng="${l.longitude}">${l.nome}</option>`).join('');
-    } catch(e) {
-      document.getElementById('local').innerHTML = '<option value="">Erro ao carregar locais</option>';
-    }
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('topbar').style.display='flex';
+  document.getElementById('layout').style.display='flex';
+
+  // subtitles
+  const h=HOSPITAL.nome;
+  document.getElementById('sub-presenca').textContent='Registre a frequência — '+h;
+  document.getElementById('sub-alunos').textContent='Alunos do '+h;
+  document.getElementById('sub-campos').textContent='Campos de estágio do '+h;
+  document.getElementById('sub-relatorio').textContent='Frequência dos alunos — '+h;
+
+  await refreshTudo();
+  loadRegistros();
+  carregarLancadosHoje();
+  goPage('presenca',document.querySelector('.nav-item'));
+}
+
+function trocarHospital(){
+  document.getElementById('topbar').style.display='none';
+  document.getElementById('layout').style.display='none';
+  document.getElementById('hospital-screen').style.display='flex';
+  ALUNOS=[];CAMPOS=[];HOSPITAL=null;
+}
+
+function setConn(txt,state){
+  document.getElementById('conn-lbl').textContent=txt;
+  const dot=document.getElementById('conn-dot');
+  dot.className='conn-dot'+(state?' '+state:'');
+}
+
+function showAlert(msg,type='success'){
+  const el=document.getElementById('alert-global');
+  el.textContent=msg;el.className='alert alert-'+type;el.style.display='block';
+  clearTimeout(el._t);el._t=setTimeout(()=>el.style.display='none',4000);
+}
+
+function toggleSidebar(){
+  const sidebar=document.querySelector('.sidebar');
+  const overlay=document.getElementById('sidebar-overlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('open');
+}
+
+function goPage(page,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  btn.classList.add('active');
+  const sidebar=document.querySelector('.sidebar');
+  const overlay=document.getElementById('sidebar-overlay');
+  sidebar.classList.remove('open');
+  overlay.classList.remove('open');
+  if(page==='alunos')loadAlunos();
+  if(page==='campos')loadCampos();
+  if(page==='busca'){document.getElementById('busca-global-input').value='';document.getElementById('busca-resultado').innerHTML='';setTimeout(()=>document.getElementById('busca-global-input').focus(),200);}
+  if(page==='relatorio')loadRelatorio();
+  if(page==='presenca'){renderAlunosGrid();renderCamposGrid();loadRegistros();carregarLancadosHoje();}
+}
+
+function clearError(id){
+  const el=document.getElementById(id);
+  if(el)el.classList.remove('field-error');
+}
+
+function showFieldError(id,msg){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.classList.add('field-error');
+  const msg_el=el.querySelector('.field-error-msg');
+  if(msg_el&&msg)msg_el.textContent=msg;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function showAcdError(id){
+  const el=document.getElementById('acd-'+id);
+  if(el){el.classList.add('acd-error');toggleAcd(id);}
+}
+function clearAcdError(id){
+  const el=document.getElementById('acd-'+id);
+  if(el)el.classList.remove('acd-error');
+}
+function horasPorTurno(turno){
+  if(turno==='Manhã') return 5;
+  if(turno==='Tarde') return 5;
+  if(turno==='Noite') return 4;
+  
+  return 5;
+}
+
+function deveAparecerHoje(aluno, dataStr){
+  if(!aluno.escala || aluno.escala==='todos') return true;
+  const data = dataStr ? new Date(dataStr+'T12:00:00') : new Date();
+  const dia = data.getDate();
+  const mes = data.getMonth();
+  const ano = data.getFullYear();
+  const diasMesAnterior = new Date(ano, mes, 0).getDate();
+  const trocou = diasMesAnterior === 31;
+  let escalaMes = aluno.escala;
+  if(trocou) escalaMes = escalaMes === 'impar' ? 'par' : 'impar';
+  if(escalaMes === 'impar') return dia % 2 !== 0;
+  if(escalaMes === 'par') return dia % 2 === 0;
+  return true;
+}
+function escalaNome(e){
+  if(e==='impar') return '1️⃣ Ímpar';
+  if(e==='par') return '2️⃣ Par';
+  return '📅 Todos';
+}
+
+async function refreshTudo(){
+  if(!sb||!HOSPITAL)return;
+  const[{data:a},{data:c}]=await Promise.all([
+    sb.from(tbl('alunos')).select('*').order('nome'),
+    sb.from(tbl('campos_estagio')).select('*').order('nome')
+  ]);
+  ALUNOS=a||[];CAMPOS=c||[];
+  renderAlunosGrid();renderCamposGrid();renderPreceptoresGrid();updateAcd();populateFiltros();
+  populateCampoSelCadastro();
+}
+
+function setSituacao(val){
+  selectedSituacao=val;
+  document.getElementById('r-situacao').value=val;
+  document.getElementById('sit-P').classList.toggle('selected',val==='P');
+  document.getElementById('sit-F').classList.toggle('selected',val==='F');
+  const obs=document.getElementById('obs-wrap');
+  if(val==='F'){obs.classList.add('visible');}
+  else{
+    obs.classList.remove('visible');
+    resetJustificativa();
   }
+}
 
-  // ── LOGIN ─────────────────────────
-  async function fazerLogin() {
-    const cpf = document.getElementById('cpf').value.trim().replace(/\D/g,'');
-    const msg = document.getElementById('msg-login');
-    if (!cpf) { showMsg(msg, 'error', 'Digite seu CPF.'); return; }
-    const btn = document.querySelector('#step-login .btn');
-    btn.disabled = true; btn.textContent = 'Verificando...';
-    try {
-      const data = await supabaseFetch(`/alunos_ilpi?cpf=eq.${encodeURIComponent(cpf)}`);
-      if (!data.length) { showMsg(msg, 'error', 'CPF não encontrado. Fale com a coordenação.'); return; }
-      alunoLogado = data[0];
-      document.getElementById('user-info').innerHTML = `<strong>${alunoLogado.nome}</strong><br>Matrícula: ${alunoLogado.matricula}`;
-      await carregarLocais();
-      trocarStep('step-presenca');
-    } catch(e) {
-      showMsg(msg, 'error', 'Sem conexão. Verifique o Wi-Fi ou dados móveis.');
-    } finally { btn.disabled = false; btn.textContent = 'Entrar'; }
+function setJustificativa(val){
+  document.querySelectorAll('.just-btn').forEach(b=>b.classList.remove('selected'));
+  event.target.classList.add('selected');
+  const campoLivre=document.getElementById('obs-campo-livre');
+  if(val==='outros'){
+    campoLivre.style.display='block';
+    document.getElementById('r-obs-val').value='';
+    document.getElementById('r-obs').value='';
+    document.getElementById('r-obs').focus();
+  }else{
+    campoLivre.style.display='none';
+    document.getElementById('r-obs-val').value=val;
+    document.getElementById('r-obs').value='';
   }
+}
 
-  // ── GPS AO SELECIONAR LOCAL ───────
-  document.getElementById('local').addEventListener('change', async function() {
-    const opt = this.options[this.selectedIndex];
-    const geo = document.getElementById('geo-status');
-    const btnEntrada = document.getElementById('btn-entrada');
-    const btnSaida = document.getElementById('btn-saida');
-    const statusEntrada = document.getElementById('status-entrada');
+function resetJustificativa(){
+  document.querySelectorAll('.just-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('obs-campo-livre').style.display='none';
+  document.getElementById('r-obs-val').value='';
+  if(document.getElementById('r-obs'))document.getElementById('r-obs').value='';
+}
 
-    if (!opt.value) {
-      geo.className = 'geo-status checking';
-      geo.innerHTML = '<span class="dot yellow"></span><span>Aguardando seleção do local...</span>';
-      btnEntrada.disabled = true; btnSaida.style.display = 'none';
-      btnEntrada.style.display = 'block'; statusEntrada.style.display = 'none';
-      return;
-    }
+function getObservacao(){
+  const val=document.getElementById('r-obs-val').value;
+  if(val) return val;
+  const textarea=document.getElementById('r-obs');
+  return textarea?textarea.value.trim():'';
+}
 
-    const lat = parseFloat(opt.dataset.lat);
-    const lng = parseFloat(opt.dataset.lng);
-    const hoje = new Date().toISOString().split('T')[0];
-
-    geo.className = 'geo-status checking';
-    geo.innerHTML = '<span class="dot yellow"></span><span>Verificando sua localização...</span>';
-    btnEntrada.disabled = true; btnSaida.disabled = true;
-
-    // Verificar registros de hoje
-    try {
-      const registros = await supabaseFetch(`/presencas_ilpi?aluno_id=eq.${alunoLogado.id}&ilpi=eq.${opt.value}&data=eq.${hoje}&order=created_at.asc`);
-      const temEntrada = registros.find(r => r.tipo === 'entrada');
-      const temSaida = registros.find(r => r.tipo === 'saida');
-
-      if (temEntrada && temSaida) {
-        const horas = calcularHoras(temEntrada.horario, temSaida.horario);
-        statusEntrada.style.display = 'block';
-        statusEntrada.innerHTML = `<div class="status-box completo"><div class="hora">${horas}</div><div class="label">✅ Entrada ${temEntrada.horario} · Saída ${temSaida.horario} – Presença completa hoje!</div></div>`;
-        btnEntrada.style.display = 'none'; btnSaida.style.display = 'none';
-      } else if (temEntrada && !temSaida) {
-        statusEntrada.style.display = 'block';
-        statusEntrada.innerHTML = `<div class="status-box entrada"><div class="hora">${temEntrada.horario}</div><div class="label">✅ Entrada registrada – agora registre a saída</div></div>`;
-        btnEntrada.style.display = 'none'; btnSaida.style.display = 'block';
-      } else {
-        statusEntrada.style.display = 'none';
-        btnEntrada.style.display = 'block'; btnSaida.style.display = 'none';
-      }
-    } catch(e) {}
-
-    // Verificar GPS
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const dist = calcularDistancia(pos.coords.latitude, pos.coords.longitude, lat, lng);
-        if (dist <= RAIO_METROS) {
-          geo.className = 'geo-status ok';
-          geo.innerHTML = `<span class="dot green"></span><span>Você está no local (${Math.round(dist)}m) ✓</span>`;
-          if (document.getElementById('btn-saida').style.display !== 'none') { btnSaida.disabled = false; }
-          else if (document.getElementById('btn-entrada').style.display !== 'none') { btnEntrada.disabled = false; }
-        } else {
-          geo.className = 'geo-status fail';
-          geo.innerHTML = `<span class="dot red"></span><span>Você está a ${Math.round(dist)}m do local. Vá até o local.</span>`;
-        }
-      },
-      (err) => {
-        geo.className = 'geo-status fail';
-        let txt = 'GPS indisponível. ';
-        if (err.code === 1) txt += 'Permita a localização nas configurações.';
-        else if (err.code === 2) txt += 'Sinal fraco. Vá para um local aberto.';
-        else txt += 'Tente novamente.';
-        geo.innerHTML = `<span class="dot red"></span><span>${txt}</span>`;
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-    );
+function setTurno(val){
+  document.getElementById('r-turno').value=val;
+  ['Manhã','Tarde','Noite'].forEach(t=>{
+    document.getElementById('turno-'+t).classList.toggle('selected',t===val);
   });
+  // resetar preceptor e aluno ao trocar turno
+  document.getElementById('r-preceptor-sel').value='';
+  document.getElementById('r-aluno-id').value='';
+  updateAcd();
+  renderPreceptoresGrid();
+  renderAlunosGrid();
+  // abrir acordeão de preceptor automaticamente
+  toggleAcd('preceptor');
+}
 
-  // ── REGISTRAR ENTRADA OU SAÍDA ────
-  async function registrar(tipo) {
-    const localSelect = document.getElementById('local');
-    const opt = localSelect.options[localSelect.selectedIndex];
-    const localNome = opt.text;
-    const localId = opt.value;
-    const msg = document.getElementById('msg-presenca');
-    const btn = tipo === 'entrada' ? document.getElementById('btn-entrada') : document.getElementById('btn-saida');
+function toggleAcd(id){
+  const body=document.getElementById('acdb-'+id);
+  const header=document.getElementById('acdh-'+id);
+  const isOpen=body.classList.contains('open');
+  ['preceptor','aluno'].forEach(t=>{
+    document.getElementById('acdb-'+t).classList.remove('open');
+    document.getElementById('acdh-'+t).classList.remove('open');
+  });
+  if(!isOpen){body.classList.add('open');header.classList.add('open');}
+}
 
-    btn.disabled = true; btn.textContent = '⏳ Registrando...';
+function updateAcd(){
+  const aluno=document.getElementById('r-aluno-id').value;
+  const prec=document.getElementById('r-preceptor-sel').value;
+  const setDone=(id,val,label)=>{
+    const h=document.getElementById('acdh-'+id);
+    const n=document.getElementById('acdn-'+id);
+    const v=document.getElementById('acdv-'+id);
+    if(val){h.classList.add('done');n.textContent='✓';v.textContent=label;}
+    else{h.classList.remove('done');n.textContent=id==='preceptor'?'1':'2';v.textContent='';}
+  };
+  const alunoLabel=ALUNOS_SEL.size>0?`${ALUNOS_SEL.size} selecionado(s)`:'';
+  setDone('preceptor',prec,prec);
+  setDone('aluno',ALUNOS_SEL.size>0,alunoLabel);
+}
 
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const lat = parseFloat(opt.dataset.lat);
-      const lng = parseFloat(opt.dataset.lng);
-      const dist = calcularDistancia(pos.coords.latitude, pos.coords.longitude, lat, lng);
+function populateCampoSelCadastro(){
+  const sel=document.getElementById('a-campo-sel');
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— selecione —</option>';
+  [...CAMPOS].sort((a,b)=>a.nome.localeCompare(b.nome,'pt')).forEach(c=>{
+    sel.innerHTML+=`<option value="${c.nome}">${c.nome}</option>`;
+  });
+  sel.value=cur;
+}
 
-      if (dist > RAIO_METROS) {
-        showMsg(msg, 'error', `Você saiu do raio do local (${Math.round(dist)}m). Registro negado.`);
-        btn.disabled = false;
-        btn.textContent = tipo === 'entrada' ? '🟢 Registrar Entrada' : '🔴 Registrar Saída';
-        return;
+function renderCamposGrid(){
+  const grid=document.getElementById('campos-grid');
+  if(!grid)return;
+  if(!CAMPOS.length){grid.innerHTML='';return;}
+  const cur=document.getElementById('r-campo-id').value;
+  const lista=[...CAMPOS].sort((a,b)=>a.nome.localeCompare(b.nome,'pt'));
+  grid.innerHTML=lista.map(c=>`<div class="campo-card${cur==c.id?' selected':''}" onclick="selectCampo(${c.id})"><div class="cc-nome">${c.nome}</div></div>`).join('');
+}
+
+function selectCampo(id){
+  document.getElementById('r-campo-id').value=id;
+  renderCamposGrid();updateAcd();
+}
+
+function renderAlunosGrid(filtro=''){
+  renderAlunosFiltrados();
+}
+
+function toggleAluno(id){
+  if(ALUNOS_SEL.has(id)){ALUNOS_SEL.delete(id);}
+  else{ALUNOS_SEL.add(id);clearAcdError('aluno');}
+  renderAlunosFiltrados();
+  autoSetCampoPorAlunos();
+  updateAcd();
+}
+
+function autoSetCampoPorAlunos(){
+  const info=document.getElementById('campo-auto-info');
+  const aviso=document.getElementById('campo-auto-aviso');
+  // esconde os avisos — cada aluno tem seu próprio setor cadastrado
+  info.style.display='none';
+  aviso.style.display='none';
+  // seta um campo genérico para não falhar na validação (cada aluno usa o seu próprio setor_fixo)
+  document.getElementById('r-campo-id').value='auto';
+}
+
+let MOSTRAR_TODOS=false;
+
+function toggleMostrarTodos(){
+  MOSTRAR_TODOS=!MOSTRAR_TODOS;
+  const btn=document.getElementById('btn-mostrar-todos');
+  if(MOSTRAR_TODOS){
+    btn.textContent='✅ Mostrando reposição — clique para voltar';
+    btn.style.color='#065f46';btn.style.borderColor='#065f46';
+  }else{
+    btn.textContent='🔍 Mostrar alunos em reposição';
+    btn.style.color='#5b21b6';btn.style.borderColor='#5b21b6';
+  }
+  renderAlunosFiltrados();
+}
+
+function renderAlunosFiltrados(){
+  const prec=document.getElementById('r-preceptor-sel').value;
+  const turno=document.getElementById('r-turno').value;
+  const filtro=document.getElementById('busca-aluno-reg')?.value||'';
+  let lista=[...ALUNOS];
+  if(prec) lista=lista.filter(a=>a.turma===prec);
+  // filtrar por turno só se o aluno tiver turno cadastrado E for diferente
+  if(turno) lista=lista.filter(a=>!a.campo || a.campo===turno);
+  if(filtro) lista=lista.filter(a=>a.nome.toLowerCase().includes(filtro.toLowerCase()));
+  // filtrar por escala (ímpar/par) — ignorar se for reposição
+  const dataReg=document.getElementById('r-data')?.value||new Date().toISOString().split('T')[0];
+  if(!MOSTRAR_TODOS) lista=lista.filter(a=>deveAparecerHoje(a, dataReg));
+  // esconder alunos já lançados hoje
+  lista=lista.filter(a=>!ALUNOS_LANCADOS.has(a.id));
+  lista=lista.sort((a,b)=>a.nome.localeCompare(b.nome,'pt'));
+  const grid=document.getElementById('alunos-grid-reg');
+  if(!lista.length){
+    grid.innerHTML='<div class="empty" style="padding:12px;font-size:13px;color:#1a6b4a">✅ Todos os alunos já foram lançados hoje!</div>';
+    atualizarSelInfo();return;
+  }
+  grid.innerHTML=lista.map(a=>`
+    <div class="aluno-card${ALUNOS_SEL.has(a.id)?' selected':''}" data-id="${a.id}">
+      <div class="ac-check">✓</div>
+      <div class="ac-nome">${a.nome}</div>
+      <div class="ac-turma">${a.turma||'Sem preceptor'}</div>
+    </div>`).join('');
+  grid.querySelectorAll('.aluno-card').forEach(card=>{
+    let touchMoved=false;
+    card.addEventListener('touchstart',()=>{touchMoved=false;},{passive:true});
+    card.addEventListener('touchmove',()=>{touchMoved=true;},{passive:true});
+    card.addEventListener('touchend',(e)=>{
+      if(!touchMoved){e.preventDefault();toggleAluno(Number(card.dataset.id));}
+    });
+    card.addEventListener('click',()=>{toggleAluno(Number(card.dataset.id));});
+  });
+  atualizarSelInfo();
+}
+
+function selecionarTodos(){
+  const prec=document.getElementById('r-preceptor-sel').value;
+  const turno=document.getElementById('r-turno').value;
+  const filtro=document.getElementById('busca-aluno-reg').value.toLowerCase();
+  let lista=[...ALUNOS];
+  if(prec) lista=lista.filter(a=>a.turma===prec);
+  if(turno) lista=lista.filter(a=>a.campo===turno);
+  if(filtro)lista=lista.filter(a=>a.nome.toLowerCase().includes(filtro));
+  lista.forEach(a=>ALUNOS_SEL.add(a.id));
+  renderAlunosFiltrados();
+  updateAcd();
+}
+
+function deselecionarTodos(){
+  ALUNOS_SEL.clear();
+  renderAlunosFiltrados();
+  updateAcd();
+}
+
+function atualizarSelInfo(){
+  const info=document.getElementById('alunos-sel-info');
+  if(!info)return;
+  if(ALUNOS_SEL.size===0){info.textContent='';}
+  else{info.textContent=`✓ ${ALUNOS_SEL.size} aluno(s) selecionado(s)`;};
+}
+
+function filtrarAlunosReg(){renderAlunosFiltrados();}
+
+function renderPreceptoresGrid(){
+  const grid=document.getElementById('preceptores-grid');
+  const cur=document.getElementById('r-preceptor-sel').value;
+  const turno=document.getElementById('r-turno').value;
+  // filtrar alunos pelo turno selecionado
+  let lista=ALUNOS;
+  if(turno) lista=lista.filter(a=>a.campo===turno);
+  const preceptores=[...new Set(lista.map(a=>a.turma).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt'));
+  if(!preceptores.length){grid.innerHTML='<div class="empty" style="padding:12px;font-size:13px">Nenhum preceptor para este turno.</div>';return;}
+  grid.innerHTML=preceptores.map(p=>`<div class="aluno-card${cur===p?' selected':''}" data-prec="${p.replace(/"/g,'&quot;')}"><div class="ac-nome">${p}</div></div>`).join('');
+  grid.querySelectorAll('.aluno-card').forEach(card=>{
+    let tm=false;
+    card.addEventListener('touchstart',()=>{tm=false;},{passive:true});
+    card.addEventListener('touchmove',()=>{tm=true;},{passive:true});
+    card.addEventListener('touchend',(e)=>{if(!tm){e.preventDefault();selectPreceptor(card.dataset.prec);}});
+    card.addEventListener('click',()=>{selectPreceptor(card.dataset.prec);});
+  });
+}
+function selectPreceptor(nome){
+  document.getElementById('r-preceptor-sel').value=nome;
+  clearAcdError('preceptor');
+  renderPreceptoresGrid();updateAcd();
+  ALUNOS_SEL.clear();
+  document.getElementById('busca-aluno-reg').value='';
+  renderAlunosFiltrados();
+  toggleAcd('aluno');
+}
+
+function setTurno(val){
+  document.getElementById('r-turno').value=val;
+  ['Manhã','Tarde','Noite'].forEach(t=>{
+    document.getElementById('turno-'+t).classList.toggle('selected',t===val);
+  });
+  clearError('fg-turno');
+  document.getElementById('r-preceptor-sel').value='';
+  document.getElementById('r-aluno-id').value='';
+  updateAcd();
+  renderPreceptoresGrid();
+  renderAlunosGrid();
+  toggleAcd('preceptor');
+}
+
+// IDs dos alunos já lançados hoje
+let ALUNOS_LANCADOS=new Set();
+
+async function carregarLancadosHoje(){
+  ALUNOS_LANCADOS.clear();
+  if(!sb)return;
+  const data=document.getElementById('r-data')?.value;
+  if(!data)return;
+  const{data:regs}=await sb.from(tbl('registros_presenca')).select('aluno_id').eq('data',data);
+  if(regs?.length){
+    regs.forEach(r=>ALUNOS_LANCADOS.add(r.aluno_id));
+  }
+  renderAlunosFiltrados();
+}
+
+async function addRegistro(){
+  if(!sb)return;
+  const data=document.getElementById('r-data').value;
+  const turno=document.getElementById('r-turno').value;
+  const situacao=document.getElementById('r-situacao').value;
+  const observacao=getObservacao();
+  // limpar erros anteriores
+  ['fg-data','fg-turno'].forEach(clearError);
+  ['preceptor','aluno'].forEach(clearAcdError);
+
+  let valido=true;
+  if(!data){showFieldError('fg-data','Informe a data');valido=false;}
+  if(!turno){showFieldError('fg-turno','Selecione o turno');valido=false;}
+  if(!ALUNOS_SEL.size){showAcdError('aluno');showAlert('Selecione pelo menos um aluno.','error');valido=false;}
+  if(!document.getElementById('r-preceptor-sel').value){showAcdError('preceptor');if(valido)showAlert('Selecione o preceptor.','error');valido=false;}
+  if(!situacao){showAlert('Marque a situação: Presente ou Ausente.','error');valido=false;}
+  if(situacao==='F'&&!observacao){showAlert('Selecione a justificativa da ausência.','error');valido=false;}
+  if(!valido)return;
+  const btn=document.getElementById('btn-add-reg');
+  btn.innerHTML='<span class="spinner"></span> Salvando...';btn.disabled=true;
+  let ok=0;let erros=0;
+  for(const aluno_id of ALUNOS_SEL){
+    const{data:dup}=await sb.from(tbl('registros_presenca')).select('id').eq('aluno_id',aluno_id).eq('data',data);
+    if(dup?.length){erros++;continue;}
+    // usar setor_fixo do próprio aluno como campo
+    const aluno=ALUNOS.find(a=>a.id===aluno_id);
+    const campoObj=CAMPOS.find(c=>c.nome===aluno?.setor_fixo);
+    const campo_id=campoObj?.id||null;
+    const{error}=await sb.from(tbl('registros_presenca')).insert({aluno_id,campo_id,data,turno,situacao,observacao:observacao||null});
+    if(error){erros++;}else{ok++;ALUNOS_LANCADOS.add(aluno_id);}
+  }
+  btn.innerHTML='<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Registrar presença';
+  btn.disabled=false;
+  ALUNOS_SEL.clear();
+  MOSTRAR_TODOS=false;
+  const btnMT=document.getElementById('btn-mostrar-todos');
+  if(btnMT){btnMT.textContent='🔍 Mostrar alunos em reposição';btnMT.style.color='#5b21b6';btnMT.style.borderColor='#5b21b6';}
+  document.getElementById('r-campo-id').value='';
+  setSituacao('');
+  resetJustificativa();
+  document.getElementById('campo-auto-info').style.display='none';
+  document.getElementById('campo-auto-aviso').style.display='none';
+  await carregarLancadosHoje();
+  updateAcd();
+  loadRegistros();
+  if(erros>0&&ok===0){showAlert(`Todos os aluno(s) já têm registro nesta data.`,'error');}
+  else if(erros>0){showAlert(`${ok} presença(s) registrada(s)! ${erros} já tinham registro nesta data.`);}
+  else{showAlert(`${ok} presença(s) registrada(s) com sucesso!`);}
+}
+
+async function addAluno(){
+  if(!sb)return;
+  const nome=document.getElementById('a-nome').value.trim();
+  const turma=document.getElementById('a-turma').value.trim();
+  const campo=document.getElementById('a-turno-sel').value;
+  const setor_fixo=document.getElementById('a-campo-sel').value;
+  const escala=document.getElementById('a-escala').value||'todos';
+  if(!nome){
+    showFieldError('fg-a-nome','Informe o nome do aluno');
+    return;
+  }
+  if(!campo){
+    showFieldError('fg-a-turno','Selecione o turno');
+    return;
+  }
+  const btn=document.getElementById('btn-add-aluno');
+  btn.innerHTML='<span class="spinner"></span> Salvando...';btn.disabled=true;
+  const{error}=await sb.from(tbl('alunos')).insert({nome,turma,campo,setor_fixo:setor_fixo||null,escala});
+  btn.innerHTML='<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg> Cadastrar aluno';
+  btn.disabled=false;
+  if(error){showAlert('Erro: '+error.message,'error');return;}
+  document.getElementById('a-nome').value='';
+  document.getElementById('a-turma').value='';
+  document.getElementById('a-turno-sel').value='';
+  document.getElementById('a-campo-sel').value='';
+  document.getElementById('a-escala').value='todos';
+  await refreshTudo();loadAlunos();
+  showAlert(`Aluno "${nome}" cadastrado!`);
+}
+
+async function loadAlunos(){
+  if(!sb)return;
+  const busca=document.getElementById('f-busca-aluno')?.value.toLowerCase()||'';
+  const{data}=await sb.from(tbl('alunos')).select('*').order('nome');
+  const div=document.getElementById('alunos-table');
+  if(!data?.length){div.innerHTML='<div class="empty">Nenhum aluno cadastrado.</div>';return;}
+  let rows=data;
+  if(busca)rows=rows.filter(a=>a.nome.toLowerCase().includes(busca)||(a.turma&&a.turma.toLowerCase().includes(busca)));
+  if(!rows.length){div.innerHTML='<div class="empty">Nenhum resultado.</div>';return;}
+  let h=`<div class="alunos-list">`;
+  rows.forEach(a=>{
+    h+=`<div class="aluno-row">
+      <div class="aluno-row-info">
+        <div class="aluno-row-nome">${a.nome}</div>
+        <div class="aluno-row-detail">Preceptor: ${a.turma||'—'} · Turno: ${a.campo||'—'} · Setor: ${a.setor_fixo||'—'} · Escala: ${escalaNome(a.escala)}</div>
+      </div>
+      <div class="aluno-row-btns">
+        <button class="btn btn-secondary btn-sm" onclick="openEditAluno(${a.id},'${a.nome.replace(/'/g,"\\'")}','${(a.turma||'').replace(/'/g,"\\'")}','${(a.campo||'').replace(/'/g,"\\'")}','${(a.setor_fixo||'').replace(/'/g,"\\'")}','${a.escala||'todos'}')">✏️ Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="removeAluno(${a.id},'${a.nome.replace(/'/g,"\\'")}')">🗑️</button>
+      </div>
+    </div>`;
+  });
+  h+=`</div>`;div.innerHTML=h;
+}
+
+function openEditAluno(id,nome,preceptor,turno,setor,escala){
+  document.getElementById('edit-aluno-id').value=id;
+  document.getElementById('edit-aluno-nome').value=nome;
+  document.getElementById('edit-aluno-preceptor').value=preceptor||'';
+  document.getElementById('edit-aluno-turno').value=turno||'';
+  const selSetor=document.getElementById('edit-aluno-setor');
+  selSetor.innerHTML='<option value="">— selecione —</option>';
+  [...CAMPOS].sort((a,b)=>a.nome.localeCompare(b.nome,'pt')).forEach(c=>{
+    selSetor.innerHTML+=`<option value="${c.nome}">${c.nome}</option>`;
+  });
+  selSetor.value=setor||'';
+  document.getElementById('edit-aluno-escala').value=escala||'todos';
+  document.getElementById('edit-aluno-overlay').classList.add('open');
+}
+
+async function saveEditAluno(){
+  const id=document.getElementById('edit-aluno-id').value;
+  const nome=document.getElementById('edit-aluno-nome').value.trim();
+  const turma=document.getElementById('edit-aluno-preceptor').value.trim();
+  const campo=document.getElementById('edit-aluno-turno').value;
+  const setor_fixo=document.getElementById('edit-aluno-setor').value;
+  const escala=document.getElementById('edit-aluno-escala').value||'todos';
+  if(!nome){showAlert('Informe o nome.','error');return;}
+  const btn=document.getElementById('btn-save-edit');
+  btn.innerHTML='<span class="spinner"></span> Salvando...';btn.disabled=true;
+  const{error}=await sb.from(tbl('alunos')).update({nome,turma,campo,setor_fixo:setor_fixo||null,escala}).eq('id',id);
+  btn.innerHTML='Salvar alterações';btn.disabled=false;
+  if(error){showAlert('Erro: '+error.message,'error');return;}
+  document.getElementById('edit-aluno-overlay').classList.remove('open');
+  await refreshTudo();loadAlunos();
+  showAlert('Aluno atualizado!');
+}
+
+async function removeAluno(id,nome){
+  if(!confirm(`Remover "${nome}" e todos os seus registros?`))return;
+  await sb.from(tbl('alunos')).delete().eq('id',id);
+  await refreshTudo();loadAlunos();
+  showAlert(`Aluno "${nome}" removido.`);
+}
+
+function populatePreceptorSelects(){
+  ['a-turma','edit-aluno-preceptor'].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(!sel)return;
+    const cur=sel.value;
+    sel.innerHTML='<option value="">— selecione —</option>';
+    PRECEPTORES.forEach(p=>{
+      sel.innerHTML+=`<option value="${p.nome}">${p.nome}</option>`;
+    });
+    if(cur)sel.value=cur;
+  });
+}
+
+async function addPreceptor(){
+  if(!sb)return;
+  const nome=document.getElementById('p-nome').value.trim();
+  if(!nome){showAlert('Informe o nome do preceptor.','error');return;}
+  const btn=document.getElementById('btn-add-preceptor');
+  btn.innerHTML='<span class="spinner"></span> Salvando...';btn.disabled=true;
+  const{error}=await sb.from(tbl('preceptores')).insert({nome});
+  btn.innerHTML='<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Cadastrar preceptor';
+  btn.disabled=false;
+  if(error){showAlert('Erro: '+error.message,'error');return;}
+  document.getElementById('p-nome').value='';
+  await refreshTudo();loadPreceptores();
+  showAlert(`Preceptor "${nome}" cadastrado!`);
+}
+
+async function loadPreceptores(){
+  if(!sb)return;
+  const{data}=await sb.from(tbl('preceptores')).select('*').order('nome');
+  const div=document.getElementById('preceptores-table');
+  if(!data?.length){div.innerHTML='<div class="empty">Nenhum preceptor cadastrado.</div>';return;}
+  let h='<div class="alunos-list">';
+  data.forEach(p=>{
+    h+=`<div class="aluno-row">
+      <div class="aluno-row-info"><div class="aluno-row-nome">${p.nome}</div></div>
+      <div class="aluno-row-btns">
+        <button class="btn btn-danger btn-sm" onclick="removePreceptor(${p.id},'${p.nome.replace(/'/g,"\\'")}')">🗑️</button>
+      </div>
+    </div>`;
+  });
+  h+='</div>';
+  div.innerHTML=h;
+}
+
+async function removePreceptor(id,nome){
+  if(!confirm(`Remover o preceptor "${nome}"?`))return;
+  await sb.from(tbl('preceptores')).delete().eq('id',id);
+  await refreshTudo();loadPreceptores();
+  showAlert(`Preceptor "${nome}" removido.`);
+}
+
+async function addCampo(){
+  if(!sb)return;
+  const nome=document.getElementById('c-nome').value.trim();
+  if(!nome){showAlert('Informe o nome do campo.','error');return;}
+  const btn=document.getElementById('btn-add-campo');
+  btn.innerHTML='<span class="spinner"></span> Salvando...';btn.disabled=true;
+  const{error}=await sb.from(tbl('campos_estagio')).insert({nome});
+  btn.innerHTML='<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Cadastrar campo';
+  btn.disabled=false;
+  if(error){showAlert('Erro: '+error.message,'error');return;}
+  document.getElementById('c-nome').value='';
+  await refreshTudo();loadCampos();
+  showAlert(`Campo "${nome}" cadastrado!`);
+}
+
+async function loadCampos(){
+  if(!sb)return;
+  const{data}=await sb.from(tbl('campos_estagio')).select('*').order('nome');
+  const div=document.getElementById('campos-table');
+  if(!data?.length){div.innerHTML='<div class="empty">Nenhum campo cadastrado.</div>';return;}
+  let h=`<table><thead><tr><th>Local / Instituição</th><th></th></tr></thead><tbody>`;
+  data.forEach(c=>{
+    h+=`<tr><td style="font-weight:600">${c.nome}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="removeCampo(${c.id},'${c.nome.replace(/'/g,"\\'")}')">Remover</button></td></tr>`;
+  });
+  h+='</tbody></table>';div.innerHTML=h;
+}
+
+async function removeCampo(id,nome){
+  if(!confirm(`Remover o campo "${nome}"?`))return;
+  await sb.from(tbl('campos_estagio')).delete().eq('id',id);
+  await refreshTudo();loadCampos();
+  showAlert(`Campo removido.`);
+}
+
+async function loadRegistros(){
+  if(!sb)return;
+  const fData=document.getElementById('f-data')?.value||'';
+  const fAluno=document.getElementById('f-aluno-r')?.value||'';
+  const fSit=document.getElementById('f-sit')?.value||'';
+  const div=document.getElementById('registros-table');
+
+  // só carrega se um aluno estiver selecionado
+  if(!fAluno){
+    div.innerHTML=`<div class="empty" style="padding:32px">
+      <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="opacity:0.3;margin-bottom:8px"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      <div>Selecione um aluno no filtro acima para ver os registros</div>
+    </div>`;
+    return;
+  }
+
+  let q=sb.from(tbl('registros_presenca')).select(`*, ${tbl('alunos')}(nome,turma), ${tbl('campos_estagio')}(nome)`).order('data',{ascending:false}).order('id',{ascending:false});
+  if(fData)q=q.eq('data',fData);
+  if(fAluno)q=q.eq('aluno_id',fAluno);
+  if(fSit)q=q.eq('situacao',fSit);
+  const{data,error}=await q.limit(200);
+  if(error){div.innerHTML='<div class="empty">Erro ao carregar.</div>';return;}
+  if(!data?.length){div.innerHTML='<div class="empty">Nenhum registro encontrado.</div>';return;}
+  const badges={P:'<span class="badge badge-p">Presente</span>',F:'<span class="badge badge-f">Ausente</span>'};
+  const ak=tbl('alunos');const ck=tbl('campos_estagio');
+  let totalHoras=0;
+  let h=`<table><thead><tr><th>Data</th><th>Aluno</th><th>Preceptor</th><th>Setor</th><th>Turno</th><th>Horas</th><th>Situação</th><th>Observação</th><th></th></tr></thead><tbody>`;
+  data.forEach(r=>{
+    const[y,m,d]=r.data.split('-');
+    const horas=r.situacao==='P'?horasPorTurno(r.turno):0;
+    totalHoras+=horas;
+    h+=`<tr>
+      <td>${d}/${m}/${y}</td>
+      <td>${r[ak]?.nome||'—'}</td>
+      <td>${r[ak]?.turma||'—'}</td>
+      <td>${r[ck]?.nome||'—'}</td>
+      <td>${r.turno||'—'}</td>
+      <td style="color:#065f46;font-weight:600">${horas}h</td>
+      <td>${badges[r.situacao]||r.situacao}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b">${r.observacao||'—'}</td>
+      <td style="display:flex;gap:4px">
+        <button class="btn btn-secondary btn-sm" onclick="openEditRegistro(${r.id},'${r.data}','${r.turno||''}','${r.situacao}','${(r.observacao||'').replace(/'/g,"\\'")}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="removeRegistro(${r.id})">✕</button>
+      </td>
+    </tr>`;
+  });
+  if(fAluno){
+    h+=`<tr style="background:#f0fdf4">
+      <td colspan="5" style="text-align:right;font-weight:700;color:#374151;padding:10px 12px">Total de horas:</td>
+      <td style="font-weight:700;color:#065f46;font-size:15px;padding:10px 12px">${totalHoras}h</td>
+      <td colspan="3"></td>
+    </tr>`;
+  }
+  h+='</tbody></table>';
+  div.innerHTML=h;
+}
+
+function setEditTurno(val){
+  document.getElementById('edit-reg-turno').value=val;
+  ['Manhã','Tarde','Noite'].forEach(t=>document.getElementById('eturno-'+t).classList.toggle('selected',t===val));
+}
+
+function setEditSituacao(val){
+  document.getElementById('edit-reg-situacao').value=val;
+  document.getElementById('esit-P').classList.toggle('selected',val==='P');
+  document.getElementById('esit-F').classList.toggle('selected',val==='F');
+  document.getElementById('edit-reg-obs-wrap').style.display=val==='F'?'block':'none';
+}
+
+function setEditJust(val){
+  document.querySelectorAll('#edit-just-btns .just-btn').forEach(b=>b.classList.remove('selected'));
+  event.target.classList.add('selected');
+  if(val==='outros'){
+    document.getElementById('edit-obs-livre').style.display='block';
+    document.getElementById('edit-reg-obs-val').value='';
+  }else{
+    document.getElementById('edit-obs-livre').style.display='none';
+    document.getElementById('edit-reg-obs-val').value=val;
+  }
+}
+
+function openEditRegistro(id,data,turno,situacao,obs){
+  document.getElementById('edit-reg-id').value=id;
+  document.getElementById('edit-reg-data').value=data;
+  setEditTurno(turno);
+  setEditSituacao(situacao);
+  // set justificativa
+  const justBtns=['Atestado médico','Falta sem justificativa','Falta de transporte da cidade de origem'];
+  document.querySelectorAll('#edit-just-btns .just-btn').forEach(b=>b.classList.remove('selected'));
+  if(justBtns.includes(obs)){
+    document.getElementById('edit-reg-obs-val').value=obs;
+    document.getElementById('edit-obs-livre').style.display='none';
+    document.querySelectorAll('#edit-just-btns .just-btn').forEach(b=>{
+      if(b.onclick.toString().includes(obs)) b.classList.add('selected');
+    });
+  }else if(obs&&obs!=='—'){
+    document.getElementById('edit-reg-obs-val').value='';
+    document.getElementById('edit-obs-livre').style.display='block';
+    document.getElementById('edit-reg-obs').value=obs;
+    // mark outros button
+    document.querySelectorAll('#edit-just-btns .just-btn').forEach(b=>{
+      if(b.textContent.includes('Outros')) b.classList.add('selected');
+    });
+  }else{
+    document.getElementById('edit-reg-obs-val').value='';
+    document.getElementById('edit-obs-livre').style.display='none';
+    document.getElementById('edit-reg-obs').value='';
+  }
+  document.getElementById('edit-reg-overlay').classList.add('open');
+}
+
+async function saveEditRegistro(){
+  const id=document.getElementById('edit-reg-id').value;
+  const data=document.getElementById('edit-reg-data').value;
+  const turno=document.getElementById('edit-reg-turno').value;
+  const situacao=document.getElementById('edit-reg-situacao').value;
+  const obsVal=document.getElementById('edit-reg-obs-val').value;
+  const obsLivre=document.getElementById('edit-reg-obs')?.value?.trim()||'';
+  const observacao=obsVal||obsLivre||null;
+  if(!data||!turno||!situacao){showAlert('Preencha todos os campos obrigatórios.','error');return;}
+  if(situacao==='F'&&!observacao){showAlert('Selecione a justificativa para ausência.','error');return;}
+  const btn=document.getElementById('btn-save-reg');
+  btn.innerHTML='<span class="spinner"></span> Salvando...';btn.disabled=true;
+  const{error}=await sb.from(tbl('registros_presenca')).update({data,turno,situacao,observacao}).eq('id',id);
+  btn.innerHTML='Salvar alterações';btn.disabled=false;
+  if(error){showAlert('Erro: '+error.message,'error');return;}
+  document.getElementById('edit-reg-overlay').classList.remove('open');
+  loadRegistros();
+  showAlert('Registro atualizado com sucesso!');
+}
+
+async function removeRegistro(id){
+  if(!confirm('Remover este registro?'))return;
+  await sb.from(tbl('registros_presenca')).delete().eq('id',id);
+  loadRegistros();
+}
+
+function populateFiltros(){
+  const fr=document.getElementById('f-aluno-r');
+  const frc=fr.value;
+  fr.innerHTML='<option value="">Todos os alunos</option>';
+  ALUNOS.forEach(a=>fr.innerHTML+=`<option value="${a.id}">${a.nome}</option>`);
+  if(frc)fr.value=frc;
+}
+
+async function loadRelatorio(){
+  if(!sb)return;
+  const{data:regs}=await sb.from(tbl('registros_presenca')).select('*');
+  const{data:alunos}=await sb.from(tbl('alunos')).select('*').order('nome');
+  const alunosFilt=alunos||[];
+  const allRegs=regs||[];
+  let totalP=0,totalF=0,totalH=0;
+  const div=document.getElementById('relatorio-table');
+  if(!alunosFilt.length){div.innerHTML='<div class="empty">Nenhum aluno encontrado.</div>';return;}
+  let h=`<table><thead><tr><th>Aluno</th><th>Preceptor</th><th>Presenças</th><th>Ausências</th><th>Carga horária</th><th>Frequência</th></tr></thead><tbody>`;
+  alunosFilt.forEach(a=>{
+    const r=allRegs.filter(x=>x.aluno_id===a.id);
+    const p=r.filter(x=>x.situacao==='P').length;
+    const f=r.filter(x=>x.situacao==='F').length;
+    const tot=r.length;
+    const horas=r.filter(x=>x.situacao==='P').reduce((acc,x)=>acc+horasPorTurno(x.turno),0);
+    const freq=tot?Math.round(p/tot*100):0;
+    const cor=freq>=75?'#5b21b6':freq>=50?'#92400e':'#991b1b';
+    totalP+=p;totalF+=f;totalH+=horas;
+    h+=`<tr>
+      <td style="font-weight:600">${a.nome}</td>
+      <td>${a.turma||'—'}</td>
+      <td style="color:#5b21b6;font-weight:600">${p}</td>
+      <td style="color:#dc2626;font-weight:600">${f}</td>
+      <td style="color:#065f46;font-weight:600">${horas}h</td>
+      <td style="min-width:120px"><div style="font-weight:700;color:${cor};font-size:14px">${freq}%</div>
+        <div class="prog-wrap"><div class="prog-fill" style="width:${freq}%;background:${cor}"></div></div>
+      </td>
+    </tr>`;
+  });
+  h+='</tbody></table>';div.innerHTML=h;
+  const total=totalP+totalF;
+  document.getElementById('m-alunos').textContent=alunosFilt.length;
+  document.getElementById('m-presencas').textContent=totalP;
+  document.getElementById('m-faltas').textContent=totalF;
+  document.getElementById('m-freq').textContent=totalH+'h';
+  // atualizar label do último metric
+  document.querySelector('#m-freq').closest('.metric').querySelector('.metric-lbl').textContent='Total de horas';
+}
+
+let REP_ALUNO_ID=null;
+let REP_HOSPITAL=null;
+
+function openReposicao(alunoId, alunoNome, hospital){
+  REP_ALUNO_ID=alunoId;
+  REP_HOSPITAL=hospital;
+  document.getElementById('rep-aluno-info').textContent='👤 '+alunoNome+' — '+hospital;
+  document.getElementById('rep-data').value=new Date().toISOString().split('T')[0];
+  document.getElementById('rep-turno').value='';
+  document.getElementById('rep-situacao').value='';
+  document.getElementById('rep-sit-P').classList.remove('selected');
+  document.getElementById('rep-sit-F').classList.remove('selected');
+  document.getElementById('rep-obs-wrap').style.display='none';
+  document.getElementById('rep-obs-val').value='';
+  document.querySelectorAll('#rep-obs-wrap .just-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('rep-obs-livre').style.display='none';
+  document.getElementById('reposicao-overlay').classList.add('open');
+}
+
+function closeReposicao(){
+  document.getElementById('reposicao-overlay').classList.remove('open');
+  REP_ALUNO_ID=null;REP_HOSPITAL=null;
+}
+
+function setRepSituacao(val){
+  document.getElementById('rep-situacao').value=val;
+  document.getElementById('rep-sit-P').classList.toggle('selected',val==='P');
+  document.getElementById('rep-sit-F').classList.toggle('selected',val==='F');
+  document.getElementById('rep-obs-wrap').style.display=val==='F'?'block':'none';
+  if(val==='P'){document.getElementById('rep-obs-val').value='';document.getElementById('rep-obs-livre').style.display='none';document.querySelectorAll('#rep-obs-wrap .just-btn').forEach(b=>b.classList.remove('selected'));}
+}
+
+function setRepJust(val){
+  document.querySelectorAll('#rep-obs-wrap .just-btn').forEach(b=>b.classList.remove('selected'));
+  event.target.classList.add('selected');
+  if(val==='outros'){document.getElementById('rep-obs-livre').style.display='block';document.getElementById('rep-obs-val').value='';}
+  else{document.getElementById('rep-obs-livre').style.display='none';document.getElementById('rep-obs-val').value=val;}
+}
+
+async function salvarReposicao(){
+  const data=document.getElementById('rep-data').value;
+  const turno=document.getElementById('rep-turno').value;
+  const situacao=document.getElementById('rep-situacao').value;
+  const obsVal=document.getElementById('rep-obs-val').value;
+  const obsLivre=document.getElementById('rep-obs')?.value?.trim()||'';
+  const observacao=obsVal||obsLivre;
+  if(!data){showFieldError('fg-rep-data','Informe a data');return;}
+  if(!turno){showFieldError('fg-rep-turno','Selecione o turno');return;}
+  if(!situacao){showAlert('Marque a situação.','error');return;}
+  if(situacao==='F'&&!observacao){showAlert('Selecione a justificativa.','error');return;}
+
+  // usar prefixo do hospital correto
+  const hospKey=Object.keys(HOSPITAIS).find(k=>HOSPITAIS[k].nome===REP_HOSPITAL);
+  const prefixo=HOSPITAIS[hospKey]?.prefixo||tbl('').replace('alunos','');
+
+  const btn=document.getElementById('btn-rep-salvar');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+  const{error}=await sb.from(prefixo+'registros_presenca').insert({
+    aluno_id:REP_ALUNO_ID,campo_id:null,data,turno,situacao,observacao:observacao||null
+  });
+  btn.innerHTML='<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Registrar';
+  btn.disabled=false;
+  if(error){showAlert('Erro: '+error.message,'error');return;}
+  closeReposicao();
+  showAlert('Reposição registrada com sucesso!');
+  buscarAluno();
+}
+
+async function buscarAluno(){
+  const termo=document.getElementById('busca-global-input').value.trim().toLowerCase();
+  const div=document.getElementById('busca-resultado');
+  const hint=document.getElementById('busca-hint');
+  if(termo.length<2){div.innerHTML='';hint.style.display='none';return;}
+
+  const resultados=[];
+  for(const hosp of Object.keys(HOSPITAIS)){
+    const prefixo=HOSPITAIS[hosp].prefixo;
+    const{data:alunos}=await sb.from(prefixo+'alunos').select('*').ilike('nome','%'+termo+'%').order('nome');
+    if(alunos?.length){
+      for(const a of alunos){
+        const{data:regs}=await sb.from(prefixo+'registros_presenca').select('*');
+        const p=(regs||[]).filter(r=>r.aluno_id===a.id&&r.situacao==='P').length;
+        const horas=(regs||[]).filter(r=>r.aluno_id===a.id&&r.situacao==='P').reduce((acc,r)=>acc+horasPorTurno(r.turno),0);
+        // só mostra alunos do hospital atual
+        if(hosp===HOSPITAL.id) resultados.push({aluno:a,p,horas,prefixo});
       }
+    }
+  }
 
-      try {
-        const agora = new Date();
-        const hoje = agora.toISOString().split('T')[0];
-        const horario = agora.toTimeString().slice(0,5);
+  if(!resultados.length){
+    div.innerHTML='<div class="card"><div class="empty">Nenhum aluno encontrado.</div></div>';
+    hint.style.display='none';
+    return;
+  }
 
-        await supabaseFetch('/presencas_ilpi', {
-          method: 'POST',
-          body: JSON.stringify({
-            aluno_id: alunoLogado.id, aluno_nome: alunoLogado.nome,
-            matricula: alunoLogado.matricula, cpf: alunoLogado.cpf,
-            ilpi: localId, ilpi_nome: localNome,
-            data: hoje, horario, tipo,
-            latitude: pos.coords.latitude, longitude: pos.coords.longitude,
-            distancia_m: Math.round(dist)
-          })
-        });
+  hint.style.display='block';
+  let html='';
+  resultados.forEach(({aluno,p,horas})=>{
+    const jasel=ALUNOS_SEL.has(aluno.id);
+    html+=`<div class="aluno-card${jasel?' selected':''}" data-id="${aluno.id}" 
+      style="margin-bottom:8px;padding:14px 16px;cursor:pointer;border-radius:10px;border:2px solid ${jasel?'#5b21b6':'#e2e8f0'};background:${jasel?'#ede9fe':'#f8fafc'}"
+      onclick="selecionarBusca(${aluno.id})">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:${jasel?'#4c1d95':'#1a202c'}">${jasel?'✓ ':''} ${aluno.nome}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px">Preceptor: ${aluno.turma||'—'} · ${aluno.campo||'—'} · ${escalaNome(aluno.escala)}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <span style="background:#ede9fe;color:#4c1d95;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${p} pres.</span>
+          <span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${horas}h</span>
+        </div>
+      </div>
+    </div>`;
+  });
+  div.innerHTML=html;
+}
 
-        let horasTotal = null;
-        if (tipo === 'saida') {
-          const registros = await supabaseFetch(`/presencas_ilpi?aluno_id=eq.${alunoLogado.id}&ilpi=eq.${localId}&data=eq.${hoje}&tipo=eq.entrada&order=created_at.asc&limit=1`);
-          if (registros.length) {
-            horasTotal = calcularHoras(registros[0].horario, horario);
-            await supabaseFetch(`/presencas_ilpi?aluno_id=eq.${alunoLogado.id}&ilpi=eq.${localId}&data=eq.${hoje}&tipo=eq.saida`, {
-              method: 'PATCH', body: JSON.stringify({ carga_horaria: horasTotal })
-            });
-          }
+function showAlunoTab(tab){
+  const isDia=tab==='dia';
+  document.getElementById('panel-dia').style.display=isDia?'block':'none';
+  document.getElementById('panel-rep').style.display=isDia?'none':'block';
+  document.getElementById('tab-dia').style.color=isDia?'#5b21b6':'#64748b';
+  document.getElementById('tab-dia').style.borderBottomColor=isDia?'#5b21b6':'transparent';
+  document.getElementById('tab-rep').style.color=isDia?'#64748b':'#5b21b6';
+  document.getElementById('tab-rep').style.borderBottomColor=isDia?'transparent':'#5b21b6';
+}
+
+function buscarReposicao(){
+  const termo=document.getElementById('rep-busca').value.trim().toLowerCase();
+  const div=document.getElementById('rep-lista');
+  if(termo.length<2){div.innerHTML='';return;}
+  let lista=[...ALUNOS].filter(a=>a.nome.toLowerCase().includes(termo)).sort((a,b)=>a.nome.localeCompare(b.nome,'pt'));
+  if(!lista.length){div.innerHTML='<div class="empty" style="padding:10px;font-size:12px">Nenhum aluno encontrado.</div>';return;}
+  div.innerHTML=`<div style="font-size:11px;font-weight:700;color:#92400e;background:#fef3c7;padding:6px 10px;border-radius:6px;margin-bottom:6px">🔄 Resultados de reposição</div>`+
+  lista.map(a=>`
+    <div class="aluno-card${ALUNOS_SEL.has(a.id)?' selected':''}" data-id="${a.id}" style="margin-bottom:6px" onclick="toggleReposicaoAluno(${a.id})">
+      <div class="ac-check">✓</div>
+      <div class="ac-nome">${a.nome}</div>
+      <div class="ac-turma">${a.turma||'—'} · ${a.campo||'—'} · ${escalaNome(a.escala)}</div>
+    </div>`).join('');
+  div.querySelectorAll('.aluno-card').forEach(card=>{
+    let tm=false;
+    card.addEventListener('touchstart',()=>{tm=false;},{passive:true});
+    card.addEventListener('touchmove',()=>{tm=true;},{passive:true});
+    card.addEventListener('touchend',(e)=>{if(!tm){e.preventDefault();toggleReposicaoAluno(Number(card.dataset.id));}});
+  });
+}
+
+function toggleReposicaoAluno(id){
+  if(ALUNOS_SEL.has(id)){ALUNOS_SEL.delete(id);}
+  else{ALUNOS_SEL.add(id);}
+  buscarReposicao();
+  updateAcd();
+  atualizarSelInfo();
+  const infoRep=document.getElementById('alunos-sel-info-rep');
+  if(infoRep) infoRep.textContent=ALUNOS_SEL.size>0?`✓ ${ALUNOS_SEL.size} aluno(s) selecionado(s)`:'';
+}
+
+function selecionarBusca(id){
+  if(ALUNOS_SEL.has(id)){
+    ALUNOS_SEL.delete(id);
+    showAlert('Aluno removido da seleção.','info');
+  }else{
+    ALUNOS_SEL.add(id);
+    showAlert('✅ Aluno adicionado! Vá para Registrar presença para finalizar.','success');
+  }
+  buscarAluno();
+  updateAcd();
+}
+async function exportExcel(){
+  if(!sb)return;
+  showAlert('Gerando planilha...','info');
+  const ak=tbl('alunos');const ck=tbl('campos_estagio');
+  const{data:regs}=await sb.from(tbl('registros_presenca')).select(`*, ${ak}(nome,turma,campo,setor_fixo), ${ck}(nome)`).order('data').order('id');
+  const{data:alunos}=await sb.from(tbl('alunos')).select('*').order('nome');
+  if(!regs?.length){showAlert('Nenhum dado para exportar.','error');return;}
+  const wb=XLSX.utils.book_new();
+  const sit={P:'Presente',F:'Ausente'};
+  const rows=regs.map(r=>{
+    const[y,m,d]=r.data.split('-');
+    const campoNome=r[ck]?.nome||r[ak]?.setor_fixo||'';
+    const horas=r.situacao==='P'?horasPorTurno(r.turno):0;
+    return{
+      'Hospital':HOSPITAL.nome,
+      'Data':`${d}/${m}/${y}`,
+      'Aluno':r[ak]?.nome||'',
+      'Preceptor':r[ak]?.turma||'',
+      'Turno':r.turno||'',
+      'Setor de estágio':campoNome,
+      'Situação':sit[r.situacao]||r.situacao,
+      'Horas':horas,
+      'Observação':r.observacao||''
+    };
+  });
+  const ws1=XLSX.utils.json_to_sheet(rows);
+  ws1['!cols']=[{wch:14},{wch:12},{wch:32},{wch:24},{wch:10},{wch:24},{wch:12},{wch:8},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,ws1,'Registros');
+
+  const relRows=(alunos||[]).map(a=>{
+    const r=regs.filter(x=>x.aluno_id===a.id);
+    const p=r.filter(x=>x.situacao==='P').length;
+    const f=r.filter(x=>x.situacao==='F').length;
+    const tot=r.length;
+    const horas=r.filter(x=>x.situacao==='P').reduce((acc,x)=>acc+horasPorTurno(x.turno),0);
+    return{
+      'Hospital':HOSPITAL.nome,
+      'Aluno':a.nome,
+      'Preceptor':a.turma||'',
+      'Turno':a.campo||'',
+      'Setor de estágio':a.setor_fixo||'',
+      'Escala':escalaNome(a.escala),
+      'Total de registros':tot,
+      'Presenças':p,
+      'Ausências':f,
+      'Carga horária (h)':horas,
+      'Frequência (%)':tot?Math.round(p/tot*100):0
+    };
+  });
+  const ws2=XLSX.utils.json_to_sheet(relRows);
+  ws2['!cols']=[{wch:14},{wch:32},{wch:24},{wch:10},{wch:24},{wch:10},{wch:16},{wch:12},{wch:12},{wch:16},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Relatório por aluno');
+
+  const hoje=new Date();
+  const hosp=HOSPITAL.id==='clara'?'SantaClara':'SaoGenoveva';
+  const nome=`presenca_${hosp}_${hoje.getFullYear()}${String(hoje.getMonth()+1).padStart(2,'0')}${String(hoje.getDate()).padStart(2,'0')}.xlsx`;
+  XLSX.writeFile(wb,nome);
+  showAlert(`Arquivo "${nome}" exportado!`);
+}
+
+function openImport(){
+  document.getElementById('import-file').value='';
+  document.getElementById('import-preview').style.display='none';
+  document.getElementById('import-error').style.display='none';
+  document.getElementById('btn-import').style.display='none';
+  document.getElementById('import-overlay').classList.add('open');
+}
+function closeImport(){
+  document.getElementById('import-overlay').classList.remove('open');
+}
+
+let importData=[];
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('import-file').addEventListener('change',function(e){
+    const file=e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        const wb=XLSX.read(ev.target.result,{type:'binary'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        // pular cabeçalho (linha 1)
+        const dados=rows.slice(1).filter(r=>r[0]&&String(r[0]).trim());
+        if(!dados.length){
+          document.getElementById('import-error').textContent='Nenhum dado encontrado. Verifique se a planilha tem dados a partir da linha 2.';
+          document.getElementById('import-error').style.display='block';
+          document.getElementById('import-preview').style.display='none';
+          document.getElementById('btn-import').style.display='none';
+          return;
         }
-
-        document.getElementById('confirm-icon').textContent = tipo === 'entrada' ? '🟢' : '🔴';
-        document.getElementById('confirm-titulo').textContent = tipo === 'entrada' ? 'Entrada Registrada!' : 'Saída Registrada!';
-        document.getElementById('confirm-titulo').style.color = tipo === 'entrada' ? '#2e7d32' : '#c62828';
-        document.getElementById('confirm-text').innerHTML = `<strong>${alunoLogado.nome}</strong><br>${localNome}<br>${agora.toLocaleDateString('pt-BR')} às ${horario}`;
-
-        const confirmHoras = document.getElementById('confirm-horas');
-        if (tipo === 'saida' && horasTotal) {
-          confirmHoras.style.display = 'block';
-          document.getElementById('confirm-total').textContent = horasTotal;
-        } else { confirmHoras.style.display = 'none'; }
-
-        trocarStep('step-ok');
-      } catch(e) {
-        showMsg(msg, 'error', 'Erro ao salvar. Verifique a conexão e tente novamente.');
-        btn.disabled = false;
-        btn.textContent = tipo === 'entrada' ? '🟢 Registrar Entrada' : '🔴 Registrar Saída';
+        // validar turno
+        const erros=[];
+        importData=dados.map((r,i)=>{
+          const nome=String(r[0]||'').trim();
+          const preceptor=String(r[1]||'').trim();
+          const turnoRaw=String(r[2]||'').trim();
+          const setor=String(r[3]||'').trim();
+          const escalRaw=String(r[4]||'todos').trim().toLowerCase();
+          const turnoMap={'manha':'Manhã','manhã':'Manhã','tarde':'Tarde','noite':'Noite','integral':'Integral'};
+          const turno=turnoMap[turnoRaw.toLowerCase()]||turnoRaw;
+          const escalaMap={'impar':'impar','ímpar':'impar','par':'par','todos':'todos','todo':'todos',''  :'todos'};
+          const escala=escalaMap[escalRaw]||'todos';
+          if(!nome)erros.push(`Linha ${i+2}: nome vazio`);
+          if(!['Manhã','Tarde','Noite'].includes(turno))erros.push(`Linha ${i+2}: turno inválido ("${turnoRaw}") — use Manhã, Tarde, Noite `);
+          if(!['todos','impar','par'].includes(escala))erros.push(`Linha ${i+2}: escala inválida ("${escalRaw}") — use todos, impar ou par`);
+          return{nome,preceptor,turno,setor,escala};
+        });
+        if(erros.length){
+          document.getElementById('import-error').innerHTML='<strong>Erros encontrados:</strong><br>'+erros.join('<br>');
+          document.getElementById('import-error').style.display='block';
+          document.getElementById('btn-import').style.display='none';
+        }else{
+          document.getElementById('import-error').style.display='none';
+          document.getElementById('btn-import').style.display='inline-flex';
+        }
+        document.getElementById('import-preview-txt').textContent=`${importData.length} aluno(s) encontrado(s) para importar:`;
+        let h=`<table><thead><tr><th>Nome</th><th>Preceptor</th><th>Turno</th><th>Setor</th><th>Escala</th></tr></thead><tbody>`;
+        importData.forEach(a=>{h+=`<tr><td>${a.nome}</td><td>${a.preceptor||'—'}</td><td>${a.turno}</td><td>${a.setor||'—'}</td><td>${escalaNome(a.escala)}</td></tr>`;});
+        h+='</tbody></table>';
+        document.getElementById('import-preview-table').innerHTML=h;
+        document.getElementById('import-preview').style.display='block';
+      }catch(err){
+        document.getElementById('import-error').textContent='Erro ao ler o arquivo: '+err.message;
+        document.getElementById('import-error').style.display='block';
       }
-    }, (err) => {
-      showMsg(msg, 'error', 'GPS indisponível. Ative a localização e tente novamente.');
-      btn.disabled = false;
-      btn.textContent = tipo === 'entrada' ? '🟢 Registrar Entrada' : '🔴 Registrar Saída';
-    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
+    };
+    reader.readAsBinaryString(file);
+  });
+});
+
+async function doImport(){
+  if(!sb||!importData.length)return;
+  const btn=document.getElementById('btn-import');
+  btn.innerHTML='<span class="spinner"></span> Importando...';btn.disabled=true;
+  const registros=importData.map(a=>({nome:a.nome,turma:a.preceptor,campo:a.turno,setor_fixo:a.setor||null,escala:a.escala||'todos'}));
+  const{error}=await sb.from(tbl('alunos')).insert(registros);
+  btn.innerHTML='Importar alunos';btn.disabled=false;
+  if(error){
+    document.getElementById('import-error').textContent='Erro ao importar: '+error.message;
+    document.getElementById('import-error').style.display='block';
+    return;
   }
+  closeImport();
+  await refreshTudo();loadAlunos();
+  showAlert(`${importData.length} aluno(s) importado(s) com sucesso!`);
+  importData=[];
+}
 
-  function calcularHoras(horaEntrada, horaSaida) {
-    const [hE, mE] = horaEntrada.split(':').map(Number);
-    const [hS, mS] = horaSaida.split(':').map(Number);
-    let min = (hS * 60 + mS) - (hE * 60 + mE);
-    if (min < 0) min += 24 * 60;
-    return `${String(Math.floor(min/60)).padStart(2,'0')}h${String(min%60).padStart(2,'0')}min`;
-  }
+function openReset(){document.getElementById('reset-senha-input').value='';document.getElementById('reset-confirm-input').value='';document.getElementById('reset-overlay').classList.add('open');}
+function closeReset(){document.getElementById('reset-overlay').classList.remove('open');document.getElementById('reset-senha-input').value='';document.getElementById('reset-confirm-input').value='';}
 
-  function calcularDistancia(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  }
+async function doReset(){
+  const senha=document.getElementById('reset-senha-input').value;
+  const confirmText=document.getElementById('reset-confirm-input').value.trim();
+  if(senha!=='1234'){showAlert('Senha incorreta.','error');return;}
+  if(confirmText!=='CONFIRMAR'){showAlert('Digite CONFIRMAR para prosseguir.','error');return;}
+  const btn=document.getElementById('btn-reset');
+  btn.innerHTML='<span class="spinner" style="border-top-color:white"></span> Apagando...';btn.disabled=true;
+  try{
+    await sb.from(tbl('registros_presenca')).delete().neq('id',0);
+    await sb.from(tbl('campos_estagio')).delete().neq('id',0);
+    await sb.from(tbl('alunos')).delete().neq('id',0);
+    closeReset();
+    await refreshTudo();loadRegistros();
+    showAlert('Sistema resetado! Pronto para nova turma.');
+  }catch(e){showAlert('Erro ao resetar: '+e.message,'error');}
+  btn.innerHTML='Apagar tudo e resetar';btn.disabled=false;
+}
 
-  function sair() {
-    alunoLogado = null;
-    document.getElementById('cpf').value = '';
-    document.getElementById('local').innerHTML = '<option value="">Carregando locais...</option>';
-    document.getElementById('geo-status').className = 'geo-status checking';
-    document.getElementById('geo-status').innerHTML = '<span class="dot yellow"></span><span>Aguardando seleção do local...</span>';
-    document.getElementById('btn-entrada').disabled = true;
-    document.getElementById('btn-entrada').style.display = 'block';
-    document.getElementById('btn-saida').style.display = 'none';
-    document.getElementById('status-entrada').style.display = 'none';
-    trocarStep('step-login');
-  }
-
-  function novoRegistro() {
-    document.getElementById('local').value = '';
-    document.getElementById('geo-status').className = 'geo-status checking';
-    document.getElementById('geo-status').innerHTML = '<span class="dot yellow"></span><span>Aguardando seleção do local...</span>';
-    document.getElementById('btn-entrada').disabled = true;
-    document.getElementById('btn-entrada').style.display = 'block';
-    document.getElementById('btn-saida').style.display = 'none';
-    document.getElementById('status-entrada').style.display = 'none';
-    trocarStep('step-presenca');
-  }
-
-  function trocarStep(id) { document.querySelectorAll('.step').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-  function showMsg(el, type, text) { el.className = `msg ${type}`; el.textContent = text; }
-
-  document.getElementById('cpf').addEventListener('keydown', e => { if(e.key==='Enter') fazerLogin(); });
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('r-data').value=new Date().toISOString().split('T')[0];
+});
 </script>
 </body>
 </html>
