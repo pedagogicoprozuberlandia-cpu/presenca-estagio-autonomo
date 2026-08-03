@@ -181,12 +181,6 @@
     document.getElementById('senha-admin').value = '';
   }
 
-  if (sessionStorage.getItem('coordenacao_auth') === '1') {
-    document.getElementById('login-admin').style.display = 'none';
-    document.getElementById('painel').style.display = 'block';
-    iniciar();
-  }
-
   // ── SUPABASE ──────────────────────
   async function supabaseFetch(path, options = {}) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
@@ -367,6 +361,13 @@
   document.querySelectorAll('.modal-overlay').forEach(m =>
     m.addEventListener('click', function(e) { if(e.target===this) this.classList.remove('active'); })
   );
+
+  // Verificar sessão ao carregar (após todas as funções estarem declaradas)
+  if (sessionStorage.getItem('coordenacao_auth') === '1') {
+    document.getElementById('login-admin').style.display = 'none';
+    document.getElementById('painel').style.display = 'block';
+    iniciar();
+  }
 
   // ── EXPORTAR EXCEL ────────────────
   function exportarExcel() {
