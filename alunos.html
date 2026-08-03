@@ -4,17 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gerenciar Alunos – ILPI</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; }
     .topbar { background: #1a1a2e; color: white; padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; }
     .topbar h1 { font-size: 1.1rem; font-weight: 600; }
-    .container { max-width: 800px; margin: 0 auto; padding: 28px 20px; }
+    .container { max-width: 900px; margin: 0 auto; padding: 28px 20px; }
     .login-card { background: white; border-radius: 16px; padding: 36px 32px; max-width: 380px; margin: 60px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
     .login-card h2 { margin-bottom: 20px; color: #1a1a2e; }
     label { display: block; font-size: 0.85rem; font-weight: 600; color: #333; margin-bottom: 6px; }
-    input { width: 100%; padding: 11px 14px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 0.95rem; margin-bottom: 14px; background: white; }
-    input:focus { outline: none; border-color: #1565c0; }
+    input, select { width: 100%; padding: 11px 14px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 0.95rem; margin-bottom: 14px; background: white; }
+    input:focus, select:focus { outline: none; border-color: #1565c0; }
     .btn { padding: 11px 20px; background: #1565c0; color: white; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
     .btn:hover { background: #0d47a1; }
     .btn-full { width: 100%; }
@@ -22,9 +23,18 @@
     .btn-green { background: #2e7d32; } .btn-green:hover { background: #1b5e20; }
     .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 24px; margin-bottom: 20px; }
     .card h2 { font-size: 1rem; color: #1a1a2e; margin-bottom: 16px; }
+
+    /* ABAS */
+    .tabs { display: flex; gap: 0; margin-bottom: 0; border-bottom: 2px solid #e0e0e0; }
+    .tab { padding: 10px 20px; font-size: 0.9rem; font-weight: 600; color: #888; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .tab.active { color: #1565c0; border-bottom-color: #1565c0; }
+    .tab-content { display: none; padding-top: 20px; }
+    .tab-content.active { display: block; }
+
     .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
     .form-row .f { flex: 1; min-width: 130px; }
-    .form-row input { margin-bottom: 0; }
+    .form-row input, .form-row select { margin-bottom: 0; }
+
     table { width: 100%; border-collapse: collapse; }
     th { background: #f5f7fa; text-align: left; padding: 10px 14px; font-size: 0.78rem; color: #666; font-weight: 600; text-transform: uppercase; }
     td { padding: 11px 14px; font-size: 0.88rem; color: #333; border-top: 1px solid #f0f0f0; }
@@ -32,8 +42,33 @@
     .msg { padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; margin-top: 12px; display: none; }
     .msg.success { background: #e8f5e9; color: #2e7d32; display: block; }
     .msg.error { background: #ffebee; color: #c62828; display: block; }
+    .msg.info { background: #e3f2fd; color: #1565c0; display: block; }
     .empty { text-align: center; padding: 30px; color: #aaa; }
     #painel { display: none; }
+
+    /* UPLOAD EXCEL */
+    .upload-area {
+      border: 2px dashed #90caf9; border-radius: 12px;
+      padding: 30px; text-align: center; cursor: pointer;
+      transition: background 0.2s; margin-bottom: 16px;
+      background: #f8fbff;
+    }
+    .upload-area:hover { background: #e3f2fd; }
+    .upload-area input[type=file] { display: none; }
+    .upload-area .icon { font-size: 2.5rem; margin-bottom: 8px; }
+    .upload-area p { color: #666; font-size: 0.9rem; }
+    .upload-area strong { color: #1565c0; }
+    .dica { background: #e3f2fd; border-radius: 8px; padding: 12px 14px; font-size: 0.83rem; color: #1565c0; margin-bottom: 16px; line-height: 1.6; }
+    .preview-table { max-height: 260px; overflow-y: auto; border: 1px solid #eee; border-radius: 8px; margin-bottom: 14px; }
+    .preview-table table { font-size: 0.83rem; }
+    .preview-table th { position: sticky; top: 0; z-index: 1; }
+    .badge-ok  { background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; }
+    .badge-err { background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; }
+
+    /* MODELO */
+    .modelo-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #f5f5f5; border: 1.5px solid #ddd; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #444; cursor: pointer; margin-bottom: 16px; }
+    .modelo-btn:hover { background: #eeeeee; }
+
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
     .modal-overlay.active { display: flex; }
     .modal { background: white; border-radius: 14px; padding: 28px; max-width: 360px; width: 90%; text-align: center; }
@@ -65,17 +100,68 @@
       <button class="btn btn-red" onclick="sairAdmin()" style="padding:8px 14px;font-size:0.82rem;">Sair</button>
     </div>
   </div>
+
   <div class="container">
+
+    <!-- CADASTRO -->
     <div class="card">
-      <h2>➕ Cadastrar Novo Aluno</h2>
-      <div class="form-row">
-        <div class="f"><label>Nome completo</label><input type="text" id="novo-nome" placeholder="Nome do aluno" /></div>
-        <div class="f"><label>Matrícula</label><input type="text" id="novo-matricula" placeholder="Ex: 2024001" /></div>
-        <div class="f"><label>CPF (só números)</label><input type="text" id="novo-cpf" placeholder="00000000000" inputmode="numeric" maxlength="11" /></div>
+      <div class="tabs">
+        <div class="tab active" onclick="trocarAba('aba-manual')">✏️ Cadastro Manual</div>
+        <div class="tab" onclick="trocarAba('aba-excel')">📊 Importar Excel</div>
       </div>
-      <button class="btn btn-green" onclick="cadastrar()" style="margin-top:14px">Cadastrar</button>
-      <div class="msg" id="msg-cadastro"></div>
+
+      <!-- ABA MANUAL -->
+      <div class="tab-content active" id="aba-manual">
+        <div class="form-row">
+          <div class="f" style="flex:2">
+            <label>Nome completo</label>
+            <input type="text" id="novo-nome" placeholder="Nome do aluno" />
+          </div>
+          <div class="f">
+            <label>CPF (só números)</label>
+            <input type="text" id="novo-cpf" placeholder="00000000000" inputmode="numeric" maxlength="11" />
+          </div>
+          <div class="f">
+            <label>Campo de Estágio</label>
+            <select id="novo-ilpi">
+              <option value="">Selecione...</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-green" onclick="cadastrarManual()" style="margin-top:14px">Cadastrar Aluno</button>
+        <div class="msg" id="msg-manual"></div>
+      </div>
+
+      <!-- ABA EXCEL -->
+      <div class="tab-content" id="aba-excel">
+        <div class="dica">
+          📋 A planilha deve ter 3 colunas na ordem: <strong>Nome</strong>, <strong>CPF</strong> (só números), <strong>Campo de Estágio</strong> (nome exato da ILPI).<br>
+          A primeira linha deve ser o cabeçalho. Formatos aceitos: <strong>.xlsx</strong> ou <strong>.xls</strong>
+        </div>
+
+        <div onclick="baixarModelo()" class="modelo-btn">
+          ⬇ Baixar planilha modelo
+        </div>
+
+        <div class="upload-area" onclick="document.getElementById('arquivo-excel').click()" id="upload-area">
+          <input type="file" id="arquivo-excel" accept=".xlsx,.xls" onchange="lerExcel(event)" />
+          <div class="icon">📊</div>
+          <p><strong>Clique aqui</strong> para selecionar a planilha</p>
+          <p style="font-size:0.8rem;margin-top:4px;color:#aaa">ou arraste o arquivo aqui</p>
+        </div>
+
+        <div id="preview-container" style="display:none">
+          <div class="preview-table" id="preview-table"></div>
+          <div id="resumo-importacao" style="font-size:0.85rem;color:#666;margin-bottom:12px;"></div>
+          <button class="btn btn-green" id="btn-importar" onclick="importarAlunos()" style="width:100%">
+            ✅ Importar Alunos
+          </button>
+        </div>
+        <div class="msg" id="msg-excel"></div>
+      </div>
     </div>
+
+    <!-- LISTA -->
     <div class="card">
       <h2>📋 Alunos Cadastrados</h2>
       <div id="tabela-alunos"><div class="empty">Carregando...</div></div>
@@ -98,12 +184,16 @@
   const SUPABASE_URL = 'https://popryznbbmzbzaowfeoc.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvcHJ5em5iYm16Ynphb3dmZW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDI3NDcsImV4cCI6MjA5Nzk3ODc0N30.xkPhLr-76Vtdo5yTC4hJRg52aM4-8bwQyGBqtzouJKE';
   const SENHA_ADMIN = '1234';
+
   let alunoParaExcluir = null;
+  let dadosParaImportar = [];
+  let locaisCache = [];
 
   function loginAdmin() {
     if (document.getElementById('senha-admin').value === SENHA_ADMIN) {
       document.getElementById('login-admin').style.display = 'none';
       document.getElementById('painel').style.display = 'block';
+      carregarLocais();
       carregarAlunos();
     } else {
       const msg = document.getElementById('msg-login');
@@ -124,39 +214,153 @@
     return data;
   }
 
+  async function carregarLocais() {
+    try {
+      locaisCache = await supabaseFetch('/locais_ilpi?ativo=eq.true&order=nome.asc');
+      const sel = document.getElementById('novo-ilpi');
+      sel.innerHTML = '<option value="">Selecione...</option>' +
+        locaisCache.map(l => `<option value="${l.id}">${l.nome}</option>`).join('');
+    } catch(e) {}
+  }
+
   async function carregarAlunos() {
     const cont = document.getElementById('tabela-alunos');
     try {
       const data = await supabaseFetch('/alunos_ilpi?order=nome.asc');
       if (!data.length) { cont.innerHTML = '<div class="empty">Nenhum aluno cadastrado.</div>'; return; }
-      const rows = data.map(a => `<tr>
-        <td><strong>${a.nome}</strong></td>
-        <td>${a.matricula}</td>
-        <td>${a.cpf ? a.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4') : '-'}</td>
-        <td><button class="btn btn-red" onclick="abrirModal('${a.id}','${a.nome.replace(/'/g,"\\'")}' )" style="padding:6px 14px;font-size:0.8rem;">🗑 Excluir</button></td>
-      </tr>`).join('');
-      cont.innerHTML = `<table><thead><tr><th>Nome</th><th>Matrícula</th><th>CPF</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table>`;
+      const rows = data.map(a => {
+        const ilpiNome = a.ilpi_nome || '-';
+        return `<tr>
+          <td><strong>${a.nome}</strong></td>
+          <td>${a.cpf ? a.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4') : '-'}</td>
+          <td>${ilpiNome}</td>
+          <td><button class="btn btn-red" onclick="abrirModal('${a.id}','${a.nome.replace(/'/g,"\\'")}' )" style="padding:6px 14px;font-size:0.8rem;">🗑 Excluir</button></td>
+        </tr>`;
+      }).join('');
+      cont.innerHTML = `<table><thead><tr><th>Nome</th><th>CPF</th><th>Campo de Estágio</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table>`;
     } catch(e) { cont.innerHTML = '<div class="empty">Erro ao carregar.</div>'; }
   }
 
-  async function cadastrar() {
+  async function cadastrarManual() {
     const nome = document.getElementById('novo-nome').value.trim();
-    const matricula = document.getElementById('novo-matricula').value.trim();
     const cpf = document.getElementById('novo-cpf').value.trim().replace(/\D/g,'');
-    const msg = document.getElementById('msg-cadastro');
-    if (!nome || !matricula || !cpf) { msg.className='msg error'; msg.textContent='Preencha todos os campos.'; return; }
+    const ilpiId = document.getElementById('novo-ilpi').value;
+    const ilpiNome = document.getElementById('novo-ilpi').options[document.getElementById('novo-ilpi').selectedIndex].text;
+    const msg = document.getElementById('msg-manual');
+
+    if (!nome || !cpf || !ilpiId) { msg.className='msg error'; msg.textContent='Preencha todos os campos.'; return; }
     if (cpf.length !== 11) { msg.className='msg error'; msg.textContent='CPF deve ter 11 dígitos.'; return; }
+
     try {
-      await supabaseFetch('/alunos_ilpi', { method:'POST', body: JSON.stringify({nome, matricula, cpf}) });
+      await supabaseFetch('/alunos_ilpi', { method:'POST', body: JSON.stringify({ nome, cpf, ilpi_id: ilpiId, ilpi_nome: ilpiNome }) });
       msg.className='msg success'; msg.textContent=`${nome} cadastrado com sucesso!`;
       document.getElementById('novo-nome').value='';
-      document.getElementById('novo-matricula').value='';
       document.getElementById('novo-cpf').value='';
+      document.getElementById('novo-ilpi').value='';
       carregarAlunos();
     } catch(e) {
       msg.className='msg error';
-      msg.textContent = e.message.includes('unique') ? 'CPF ou matrícula já cadastrado.' : 'Erro ao cadastrar.';
+      msg.textContent = e.message.includes('unique') ? 'CPF já cadastrado.' : 'Erro ao cadastrar.';
     }
+  }
+
+  // ── EXCEL ─────────────────────────
+  function trocarAba(id) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['aba-manual','aba-excel'][i] === id));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function lerExcel(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      if (rows.length < 2) {
+        showMsg(document.getElementById('msg-excel'), 'error', 'Planilha vazia ou sem dados.');
+        return;
+      }
+
+      // Ignorar cabeçalho (linha 0)
+      const dados = rows.slice(1).filter(r => r[0] || r[1]);
+      dadosParaImportar = dados.map(r => {
+        const nome = String(r[0] || '').trim();
+        const cpf = String(r[1] || '').replace(/\D/g,'').trim();
+        const ilpiTexto = String(r[2] || '').trim();
+        const localEncontrado = locaisCache.find(l => l.nome.toLowerCase() === ilpiTexto.toLowerCase());
+        const erros = [];
+        if (!nome) erros.push('Nome vazio');
+        if (cpf.length !== 11) erros.push('CPF inválido');
+        if (!localEncontrado) erros.push(`Local "${ilpiTexto}" não encontrado`);
+        return { nome, cpf, ilpiTexto, ilpiId: localEncontrado?.id, ilpiNome: localEncontrado?.nome, erros, ok: erros.length === 0 };
+      });
+
+      renderPreview();
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function renderPreview() {
+    const cont = document.getElementById('preview-container');
+    const tabela = document.getElementById('preview-table');
+    const resumo = document.getElementById('resumo-importacao');
+    const btnImportar = document.getElementById('btn-importar');
+
+    const ok = dadosParaImportar.filter(d => d.ok).length;
+    const err = dadosParaImportar.filter(d => !d.ok).length;
+
+    resumo.innerHTML = `<span style="color:#2e7d32;font-weight:600">✅ ${ok} prontos para importar</span>${err ? `  &nbsp; <span style="color:#c62828;font-weight:600">❌ ${err} com erro (serão ignorados)</span>` : ''}`;
+    btnImportar.disabled = ok === 0;
+
+    const rows = dadosParaImportar.map(d => `<tr>
+      <td>${d.nome || '-'}</td>
+      <td>${d.cpf ? d.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4') : '-'}</td>
+      <td>${d.ilpiTexto || '-'}</td>
+      <td>${d.ok ? '<span class="badge-ok">✓ OK</span>' : `<span class="badge-err">${d.erros.join(', ')}</span>`}</td>
+    </tr>`).join('');
+
+    tabela.innerHTML = `<table><thead><tr><th>Nome</th><th>CPF</th><th>Campo de Estágio</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+    cont.style.display = 'block';
+  }
+
+  async function importarAlunos() {
+    const validos = dadosParaImportar.filter(d => d.ok);
+    const msg = document.getElementById('msg-excel');
+    const btn = document.getElementById('btn-importar');
+    btn.disabled = true; btn.textContent = '⏳ Importando...';
+
+    let importados = 0, erros = 0;
+    for (const a of validos) {
+      try {
+        await supabaseFetch('/alunos_ilpi', { method:'POST', body: JSON.stringify({ nome: a.nome, cpf: a.cpf, ilpi_id: a.ilpiId, ilpi_nome: a.ilpiNome }) });
+        importados++;
+      } catch(e) { erros++; }
+    }
+
+    msg.className = 'msg success';
+    msg.textContent = `✅ ${importados} aluno(s) importado(s) com sucesso!${erros ? ` (${erros} já existiam ou tiveram erro)` : ''}`;
+    document.getElementById('preview-container').style.display = 'none';
+    document.getElementById('arquivo-excel').value = '';
+    dadosParaImportar = [];
+    btn.disabled = false; btn.textContent = '✅ Importar Alunos';
+    carregarAlunos();
+  }
+
+  function baixarModelo() {
+    const ws_data = [
+      ['Nome', 'CPF', 'Campo de Estágio'],
+      ['Maria Silva Santos', '00011122233', 'Casa Sant\'Anna'],
+      ['João Pedro Oliveira', '44455566677', 'Lar André Luiz'],
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    ws['!cols'] = [{wch:30},{wch:15},{wch:25}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Alunos');
+    XLSX.writeFile(wb, 'modelo_importacao_alunos.xlsx');
   }
 
   function abrirModal(id, nome) {
@@ -166,11 +370,12 @@
   }
   function fecharModal() { alunoParaExcluir=null; document.getElementById('modal-excluir').classList.remove('active'); }
   async function confirmarExclusao() {
-    if (!alunoParaExcluir) return;
     try { await supabaseFetch(`/alunos_ilpi?id=eq.${alunoParaExcluir}`, {method:'DELETE'}); fecharModal(); carregarAlunos(); }
     catch(e) { fecharModal(); alert('Erro ao excluir.'); }
   }
   document.getElementById('modal-excluir').addEventListener('click', function(e) { if(e.target===this) fecharModal(); });
+
+  function showMsg(el, type, text) { el.className=`msg ${type}`; el.textContent=text; }
 </script>
 </body>
 </html>
