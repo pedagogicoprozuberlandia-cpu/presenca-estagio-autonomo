@@ -97,7 +97,7 @@
       <div class="f"><label>Data inicial</label><input type="date" id="f-ini" /></div>
       <div class="f"><label>Data final</label><input type="date" id="f-fim" /></div>
       <div class="f">
-        <label>ILPI</label>
+        <label>Campo de Estágio</label>
         <select id="f-ilpi">
           <option value="">Todas</option>
           <option value="santanna">Casa Sant'Anna</option>
@@ -230,7 +230,7 @@
 
     cont.innerHTML = `<table>
       <thead><tr>
-        <th>Data</th><th>Horário</th><th>Tipo</th><th>Aluno</th><th>CPF</th><th>ILPI</th><th>C. Horária</th>
+        <th>Data</th><th>Horário</th><th>Tipo</th><th>Aluno</th><th>CPF</th><th>Campo de Estágio</th><th>C. Horária</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -250,7 +250,7 @@
 
     const linhas = Object.values(mapa).sort((a,b) => a.data < b.data ? 1 : -1);
     const ws_data = [
-      ['Nome do Aluno', 'CPF', 'Matrícula', 'ILPI', 'Data', 'Entrada', 'Saída', 'Carga Horária'],
+      ['Nome do Aluno', 'CPF', 'Campo de Estágio', 'Data', 'Entrada', 'Saída', 'Carga Horária'],
       ...linhas.map(l => [
         l.aluno,
         l.cpf ? l.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4') : '',
