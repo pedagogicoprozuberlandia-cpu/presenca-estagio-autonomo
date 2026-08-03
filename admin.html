@@ -100,11 +100,6 @@
         <label>Campo de Estágio</label>
         <select id="f-ilpi">
           <option value="">Todas</option>
-          <option value="santanna">Casa Sant'Anna</option>
-          <option value="arte_cuidar">Arte de Cuidar</option>
-          <option value="andre_luiz">Lar André Luiz</option>
-          <option value="por_do_sol">Lar Pôr do Sol</option>
-          <option value="filadelia">Lar Levi (LEVI)</option>
         </select>
       </div>
       <div class="f"><label>Aluno</label><input type="text" id="f-aluno" placeholder="Buscar nome..." /></div>
@@ -156,12 +151,22 @@
     return res.json();
   }
 
-  function iniciar() {
+  async function iniciar() {
     const hoje = new Date().toISOString().split('T')[0];
     document.getElementById('f-ini').value = hoje.slice(0,8) + '01';
     document.getElementById('f-fim').value = hoje;
+    await carregarFiltroLocais();
     carregar();
     setInterval(carregar, 60000);
+  }
+
+  async function carregarFiltroLocais() {
+    try {
+      const locais = await supabaseFetch('/locais_ilpi?ativo=eq.true&order=nome.asc');
+      const sel = document.getElementById('f-ilpi');
+      sel.innerHTML = '<option value="">Todas</option>' +
+        locais.map(l => `<option value="${l.id}">${l.nome}</option>`).join('');
+    } catch(e) {}
   }
 
   async function carregar() {
