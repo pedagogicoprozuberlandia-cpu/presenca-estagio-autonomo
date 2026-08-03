@@ -19,7 +19,6 @@
     .btn:hover { background: #0d47a1; }
     .btn:disabled { background: #90a4ae; cursor: not-allowed; }
     .btn-verde { background: #2e7d32; } .btn-verde:hover { background: #1b5e20; }
-    .btn-vermelho { background: #c62828; } .btn-vermelho:hover { background: #b71c1c; }
     .btn-outline { background: white; color: #1565c0; border: 2px solid #1565c0; } .btn-outline:hover { background: #e8f4fd; }
     .msg { padding: 12px 16px; border-radius: 10px; font-size: 0.88rem; margin-top: 4px; display: none; }
     .msg.success { background: #e8f5e9; color: #2e7d32; display: block; }
@@ -36,11 +35,9 @@
     .dot.green { background: #43a047; }
     .dot.red { background: #e53935; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-    .status-box { border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: center; }
-    .status-box.entrada { background: #e8f5e9; border: 2px solid #43a047; }
-    .status-box.completo { background: #fff8e1; border: 2px solid #f9a825; }
-    .status-box .hora { font-size: 1.8rem; font-weight: 700; color: #1a1a2e; }
-    .status-box .label { font-size: 0.82rem; color: #666; margin-top: 4px; }
+    .ja-registrado { background: #fff8e1; border: 2px solid #f9a825; border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 16px; }
+    .ja-registrado .hora { font-size: 1.8rem; font-weight: 700; color: #1a1a2e; }
+    .ja-registrado .label { font-size: 0.82rem; color: #666; margin-top: 4px; }
     .link-admin { text-align: center; margin-top: 20px; font-size: 0.8rem; color: #999; }
     .link-admin a { color: #1565c0; text-decoration: none; }
   </style>
@@ -65,17 +62,22 @@
   <div class="step" id="step-presenca">
     <div class="badge">Registrar Presença</div>
     <div class="user-info" id="user-info"></div>
-    <label for="local">Local de Estágio</label>
+
+    <label for="local">Campo de Estágio</label>
     <select id="local">
       <option value="">Carregando locais...</option>
     </select>
+
     <div class="geo-status checking" id="geo-status">
       <span class="dot yellow"></span>
       <span>Aguardando seleção do local...</span>
     </div>
-    <div id="status-entrada" style="display:none"></div>
-    <button class="btn btn-verde" id="btn-entrada" onclick="registrar('entrada')" disabled>🟢 Registrar Entrada</button>
-    <button class="btn btn-vermelho" id="btn-saida" onclick="registrar('saida')" disabled style="display:none">🔴 Registrar Saída</button>
+
+    <div id="status-hoje" style="display:none"></div>
+
+    <button class="btn btn-verde" id="btn-registrar" onclick="registrar()" disabled>
+      ✅ Registrar Presença
+    </button>
     <button class="btn btn-outline" onclick="sair()">Sair</button>
     <div class="msg" id="msg-presenca"></div>
   </div>
@@ -83,13 +85,13 @@
   <!-- STEP 3: Confirmação -->
   <div class="step" id="step-ok">
     <div style="text-align:center;padding:16px 0 8px;">
-      <div style="font-size:3rem;" id="confirm-icon">✅</div>
-      <h2 style="margin:12px 0 8px;" id="confirm-titulo">Registrado!</h2>
+      <div style="font-size:3rem;">✅</div>
+      <h2 style="margin:12px 0 8px;color:#2e7d32;">Presença Registrada!</h2>
       <p style="color:#555;" id="confirm-text"></p>
     </div>
-    <div id="confirm-horas" style="display:none;background:#e8f5e9;border-radius:10px;padding:16px;text-align:center;margin:14px 0;">
-      <div style="font-size:0.85rem;color:#555;">Carga horária do dia</div>
-      <div style="font-size:2rem;font-weight:700;color:#2e7d32;" id="confirm-total"></div>
+    <div style="background:#e8f5e9;border-radius:10px;padding:16px;text-align:center;margin:14px 0;">
+      <div style="font-size:0.85rem;color:#555;">Carga horária computada</div>
+      <div style="font-size:2rem;font-weight:700;color:#2e7d32;">6h00min</div>
     </div>
     <button class="btn" onclick="novoRegistro()">Novo Registro</button>
   </div>
@@ -101,9 +103,9 @@
   const SUPABASE_URL = 'https://popryznbbmzbzaowfeoc.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvcHJ5em5iYm16Ynphb3dmZW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDI3NDcsImV4cCI6MjA5Nzk3ODc0N30.xkPhLr-76Vtdo5yTC4hJRg52aM4-8bwQyGBqtzouJKE';
   const RAIO_METROS = 200;
+  const CARGA_HORARIA = '6h00min';
 
   let alunoLogado = null;
-  let locaisCache = [];
 
   async function supabaseFetch(path, options = {}) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
@@ -115,11 +117,9 @@
     return data;
   }
 
-  // Carregar locais do banco ao abrir
   async function carregarLocais() {
     try {
       const locais = await supabaseFetch('/locais_ilpi?ativo=eq.true&order=nome.asc');
-      locaisCache = locais;
       const sel = document.getElementById('local');
       sel.innerHTML = '<option value="">Selecione o local...</option>' +
         locais.map(l => `<option value="${l.id}" data-lat="${l.latitude}" data-lng="${l.longitude}">${l.nome}</option>`).join('');
@@ -151,15 +151,14 @@
   document.getElementById('local').addEventListener('change', async function() {
     const opt = this.options[this.selectedIndex];
     const geo = document.getElementById('geo-status');
-    const btnEntrada = document.getElementById('btn-entrada');
-    const btnSaida = document.getElementById('btn-saida');
-    const statusEntrada = document.getElementById('status-entrada');
+    const btn = document.getElementById('btn-registrar');
+    const statusHoje = document.getElementById('status-hoje');
 
     if (!opt.value) {
       geo.className = 'geo-status checking';
       geo.innerHTML = '<span class="dot yellow"></span><span>Aguardando seleção do local...</span>';
-      btnEntrada.disabled = true; btnSaida.style.display = 'none';
-      btnEntrada.style.display = 'block'; statusEntrada.style.display = 'none';
+      btn.disabled = true;
+      statusHoje.style.display = 'none';
       return;
     }
 
@@ -169,26 +168,25 @@
 
     geo.className = 'geo-status checking';
     geo.innerHTML = '<span class="dot yellow"></span><span>Verificando sua localização...</span>';
-    btnEntrada.disabled = true; btnSaida.disabled = true;
+    btn.disabled = true;
 
-    // Verificar registros de hoje
+    // Verificar se já registrou hoje nesse local
     try {
-      const registros = await supabaseFetch(`/presencas_ilpi?aluno_id=eq.${alunoLogado.id}&ilpi=eq.${opt.value}&data=eq.${hoje}&order=created_at.asc`);
-      const temEntrada = registros.find(r => r.tipo === 'entrada');
-      const temSaida = registros.find(r => r.tipo === 'saida');
-
-      if (temEntrada && temSaida) {
-        const horas = calcularHoras(temEntrada.horario, temSaida.horario);
-        statusEntrada.style.display = 'block';
-        statusEntrada.innerHTML = `<div class="status-box completo"><div class="hora">${horas}</div><div class="label">✅ Entrada ${temEntrada.horario} · Saída ${temSaida.horario} – Presença completa hoje!</div></div>`;
-        btnEntrada.style.display = 'none'; btnSaida.style.display = 'none';
-      } else if (temEntrada && !temSaida) {
-        statusEntrada.style.display = 'block';
-        statusEntrada.innerHTML = `<div class="status-box entrada"><div class="hora">${temEntrada.horario}</div><div class="label">✅ Entrada registrada – agora registre a saída</div></div>`;
-        btnEntrada.style.display = 'none'; btnSaida.style.display = 'block';
+      const registros = await supabaseFetch(
+        `/presencas_ilpi?aluno_id=eq.${alunoLogado.id}&ilpi=eq.${opt.value}&data=eq.${hoje}&tipo=eq.entrada&limit=1`
+      );
+      if (registros.length) {
+        statusHoje.style.display = 'block';
+        statusHoje.innerHTML = `
+          <div class="ja-registrado">
+            <div class="hora">${registros[0].horario}</div>
+            <div class="label">✅ Presença já registrada hoje neste local</div>
+          </div>`;
+        btn.disabled = true;
+        btn.textContent = '✅ Já registrado hoje';
       } else {
-        statusEntrada.style.display = 'none';
-        btnEntrada.style.display = 'block'; btnSaida.style.display = 'none';
+        statusHoje.style.display = 'none';
+        btn.textContent = '✅ Registrar Presença';
       }
     } catch(e) {}
 
@@ -199,11 +197,13 @@
         if (dist <= RAIO_METROS) {
           geo.className = 'geo-status ok';
           geo.innerHTML = `<span class="dot green"></span><span>Você está no local (${Math.round(dist)}m) ✓</span>`;
-          if (document.getElementById('btn-saida').style.display !== 'none') { btnSaida.disabled = false; }
-          else if (document.getElementById('btn-entrada').style.display !== 'none') { btnEntrada.disabled = false; }
+          // Só habilita se ainda não registrou hoje
+          const jaRegistrado = document.querySelector('.ja-registrado');
+          if (!jaRegistrado) btn.disabled = false;
         } else {
           geo.className = 'geo-status fail';
           geo.innerHTML = `<span class="dot red"></span><span>Você está a ${Math.round(dist)}m do local. Vá até o local.</span>`;
+          btn.disabled = true;
         }
       },
       (err) => {
@@ -218,14 +218,14 @@
     );
   });
 
-  // ── REGISTRAR ENTRADA OU SAÍDA ────
-  async function registrar(tipo) {
+  // ── REGISTRAR PRESENÇA ────────────
+  async function registrar() {
     const localSelect = document.getElementById('local');
     const opt = localSelect.options[localSelect.selectedIndex];
     const localNome = opt.text;
     const localId = opt.value;
     const msg = document.getElementById('msg-presenca');
-    const btn = tipo === 'entrada' ? document.getElementById('btn-entrada') : document.getElementById('btn-saida');
+    const btn = document.getElementById('btn-registrar');
 
     btn.disabled = true; btn.textContent = '⏳ Registrando...';
 
@@ -236,8 +236,7 @@
 
       if (dist > RAIO_METROS) {
         showMsg(msg, 'error', `Você saiu do raio do local (${Math.round(dist)}m). Registro negado.`);
-        btn.disabled = false;
-        btn.textContent = tipo === 'entrada' ? '🟢 Registrar Entrada' : '🔴 Registrar Saída';
+        btn.disabled = false; btn.textContent = '✅ Registrar Presença';
         return;
       }
 
@@ -249,56 +248,33 @@
         await supabaseFetch('/presencas_ilpi', {
           method: 'POST',
           body: JSON.stringify({
-            aluno_id: alunoLogado.id, aluno_nome: alunoLogado.nome,
-            matricula: alunoLogado.matricula, cpf: alunoLogado.cpf,
-            ilpi: localId, ilpi_nome: localNome,
-            data: hoje, horario, tipo,
-            latitude: pos.coords.latitude, longitude: pos.coords.longitude,
+            aluno_id: alunoLogado.id,
+            aluno_nome: alunoLogado.nome,
+            cpf: alunoLogado.cpf,
+            ilpi: localId,
+            ilpi_nome: localNome,
+            data: hoje,
+            horario,
+            tipo: 'entrada',
+            carga_horaria: CARGA_HORARIA,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
             distancia_m: Math.round(dist)
           })
         });
 
-        let horasTotal = null;
-        if (tipo === 'saida') {
-          const registros = await supabaseFetch(`/presencas_ilpi?aluno_id=eq.${alunoLogado.id}&ilpi=eq.${localId}&data=eq.${hoje}&tipo=eq.entrada&order=created_at.asc&limit=1`);
-          if (registros.length) {
-            horasTotal = calcularHoras(registros[0].horario, horario);
-            await supabaseFetch(`/presencas_ilpi?aluno_id=eq.${alunoLogado.id}&ilpi=eq.${localId}&data=eq.${hoje}&tipo=eq.saida`, {
-              method: 'PATCH', body: JSON.stringify({ carga_horaria: horasTotal })
-            });
-          }
-        }
-
-        document.getElementById('confirm-icon').textContent = tipo === 'entrada' ? '🟢' : '🔴';
-        document.getElementById('confirm-titulo').textContent = tipo === 'entrada' ? 'Entrada Registrada!' : 'Saída Registrada!';
-        document.getElementById('confirm-titulo').style.color = tipo === 'entrada' ? '#2e7d32' : '#c62828';
-        document.getElementById('confirm-text').innerHTML = `<strong>${alunoLogado.nome}</strong><br>${localNome}<br>${agora.toLocaleDateString('pt-BR')} às ${horario}`;
-
-        const confirmHoras = document.getElementById('confirm-horas');
-        if (tipo === 'saida' && horasTotal) {
-          confirmHoras.style.display = 'block';
-          document.getElementById('confirm-total').textContent = horasTotal;
-        } else { confirmHoras.style.display = 'none'; }
-
+        document.getElementById('confirm-text').innerHTML =
+          `<strong>${alunoLogado.nome}</strong><br>${localNome}<br>${agora.toLocaleDateString('pt-BR')} às ${horario}`;
         trocarStep('step-ok');
+
       } catch(e) {
         showMsg(msg, 'error', 'Erro ao salvar. Verifique a conexão e tente novamente.');
-        btn.disabled = false;
-        btn.textContent = tipo === 'entrada' ? '🟢 Registrar Entrada' : '🔴 Registrar Saída';
+        btn.disabled = false; btn.textContent = '✅ Registrar Presença';
       }
     }, (err) => {
       showMsg(msg, 'error', 'GPS indisponível. Ative a localização e tente novamente.');
-      btn.disabled = false;
-      btn.textContent = tipo === 'entrada' ? '🟢 Registrar Entrada' : '🔴 Registrar Saída';
+      btn.disabled = false; btn.textContent = '✅ Registrar Presença';
     }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
-  }
-
-  function calcularHoras(horaEntrada, horaSaida) {
-    const [hE, mE] = horaEntrada.split(':').map(Number);
-    const [hS, mS] = horaSaida.split(':').map(Number);
-    let min = (hS * 60 + mS) - (hE * 60 + mE);
-    if (min < 0) min += 24 * 60;
-    return `${String(Math.floor(min/60)).padStart(2,'0')}h${String(min%60).padStart(2,'0')}min`;
   }
 
   function calcularDistancia(lat1, lon1, lat2, lon2) {
@@ -314,10 +290,9 @@
     document.getElementById('local').innerHTML = '<option value="">Carregando locais...</option>';
     document.getElementById('geo-status').className = 'geo-status checking';
     document.getElementById('geo-status').innerHTML = '<span class="dot yellow"></span><span>Aguardando seleção do local...</span>';
-    document.getElementById('btn-entrada').disabled = true;
-    document.getElementById('btn-entrada').style.display = 'block';
-    document.getElementById('btn-saida').style.display = 'none';
-    document.getElementById('status-entrada').style.display = 'none';
+    document.getElementById('btn-registrar').disabled = true;
+    document.getElementById('btn-registrar').textContent = '✅ Registrar Presença';
+    document.getElementById('status-hoje').style.display = 'none';
     trocarStep('step-login');
   }
 
@@ -325,10 +300,9 @@
     document.getElementById('local').value = '';
     document.getElementById('geo-status').className = 'geo-status checking';
     document.getElementById('geo-status').innerHTML = '<span class="dot yellow"></span><span>Aguardando seleção do local...</span>';
-    document.getElementById('btn-entrada').disabled = true;
-    document.getElementById('btn-entrada').style.display = 'block';
-    document.getElementById('btn-saida').style.display = 'none';
-    document.getElementById('status-entrada').style.display = 'none';
+    document.getElementById('btn-registrar').disabled = true;
+    document.getElementById('btn-registrar').textContent = '✅ Registrar Presença';
+    document.getElementById('status-hoje').style.display = 'none';
     trocarStep('step-presenca');
   }
 
