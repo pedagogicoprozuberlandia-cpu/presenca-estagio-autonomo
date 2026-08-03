@@ -4,113 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Painel Coordenação – Presenças Estágio</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
-  let registroParaExcluir = null;
-  let locaisAdmin = [];
-
-  async function carregarLocaisAdmin() {
-    if (locaisAdmin.length) return;
-    try {
-      locaisAdmin = await supabaseFetch('/locais_ilpi?ativo=eq.true&order=nome.asc');
-    } catch(e) {}
-  }
-
-  async function abrirEditar(id, aluno, cpf, ilpiId, data, horario, carga, ilpiNome) {
-    await carregarLocaisAdmin();
-    document.getElementById('edit-id').value = id;
-    document.getElementById('edit-aluno').value = aluno;
-    document.getElementById('edit-cpf').value = cpf;
-    document.getElementById('edit-data').value = data;
-    document.getElementById('edit-horario').value = horario;
-    document.getElementById('edit-carga').value = carga;
-
-    const sel = document.getElementById('edit-local');
-    sel.innerHTML = locaisAdmin.map(l =>
-      `<option value="${l.id}" ${l.id === ilpiId ? 'selected' : ''}>${l.nome}</option>`
-    ).join('');
-
-    document.getElementById('modal-editar-msg').style.display = 'none';
-    document.getElementById('modal-editar').classList.add('active');
-  }
-
-  async function salvarEdicao() {
-    const id = document.getElementById('edit-id').value;
-    const aluno_nome = document.getElementById('edit-aluno').value.trim();
-    const cpf = document.getElementById('edit-cpf').value.trim().replace(/\D/g,'');
-    const localSel = document.getElementById('edit-local');
-    const ilpi = localSel.value;
-    const ilpi_nome = localSel.options[localSel.selectedIndex].text;
-    const data = document.getElementById('edit-data').value;
-    const horario = document.getElementById('edit-horario').value;
-    const carga_horaria = document.getElementById('edit-carga').value.trim();
-    const msg = document.getElementById('modal-editar-msg');
-
-    if (!aluno_nome || !data || !horario) {
-      msg.className = 'modal-msg error'; msg.textContent = 'Preencha nome, data e horário.'; return;
-    }
-
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/presencas_ilpi?id=eq.${id}`, {
-        method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-        body: JSON.stringify({ aluno_nome, cpf, ilpi, ilpi_nome, data, horario, carga_horaria })
-      });
-      fecharModal('modal-editar');
-      carregar();
-    } catch(e) {
-      msg.className = 'modal-msg error'; msg.textContent = 'Erro ao salvar. Tente novamente.';
-    }
-  }
-
-  function abrirExcluir(id, aluno, data) {
-    registroParaExcluir = id;
-    document.getElementById('modal-excluir-texto').textContent =
-      `Tem certeza que deseja excluir o registro de "${aluno}" em ${data}?`;
-    document.getElementById('modal-excluir').classList.add('active');
-  }
-
-  async function confirmarExclusao() {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/presencas_ilpi?id=eq.${registroParaExcluir}`, {
-        method: 'DELETE',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-      });
-      fecharModal('modal-excluir');
-      carregar();
-    } catch(e) { alert('Erro ao excluir.'); }
-  }
-
-  function fecharModal(id) {
-    document.getElementById(id).classList.remove('active');
-    registroParaExcluir = null;
-  }
-
-  document.querySelectorAll('.modal-overlay').forEach(m =>
-    m.addEventListener('click', function(e) { if(e.target===this) this.classList.remove('active'); })
-  );
-</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; }
-    .topbar {
-      background: #1a1a2e; color: white;
-      padding: 16px 28px;
-      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-    }
+    .topbar { background: #1a1a2e; color: white; padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
     .topbar h1 { font-size: 1.1rem; font-weight: 600; }
     .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
-    .login-card {
-      background: white; border-radius: 16px;
-      padding: 36px 32px; max-width: 380px;
-      margin: 60px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
+    .login-card { background: white; border-radius: 16px; padding: 36px 32px; max-width: 380px; margin: 60px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
     .login-card h2 { margin-bottom: 20px; color: #1a1a2e; }
     label { display: block; font-size: 0.85rem; font-weight: 600; color: #333; margin-bottom: 6px; }
-    input, select {
-      width: 100%; padding: 11px 14px;
-      border: 1.5px solid #ddd; border-radius: 10px;
-      font-size: 0.95rem; margin-bottom: 14px; background: white;
-    }
+    input, select { width: 100%; padding: 11px 14px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 0.95rem; margin-bottom: 14px; background: white; }
     input:focus, select:focus { outline: none; border-color: #1565c0; }
     .btn { padding: 11px 20px; background: #1565c0; color: white; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
     .btn:hover { background: #0d47a1; }
@@ -130,11 +34,8 @@
     .table-header h2 { font-size: 1rem; color: #1a1a2e; }
     table { width: 100%; border-collapse: collapse; }
     th { background: #f5f7fa; text-align: left; padding: 10px 14px; font-size: 0.78rem; color: #666; font-weight: 600; text-transform: uppercase; }
-    td { padding: 10px 14px; font-size: 0.87rem; color: #333; border-top: 1px solid #f0f0f0; }
+    td { padding: 10px 14px; font-size: 0.87rem; color: #333; border-top: 1px solid #f0f0f0; vertical-align: middle; }
     tr:hover td { background: #fafbfc; }
-    .badge-tipo { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
-    .b-entrada { background: #e8f5e9; color: #2e7d32; }
-    .b-saida   { background: #ffebee; color: #c62828; }
     .badge-ilpi { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; background: #e3f2fd; color: #1565c0; }
     .empty { text-align: center; padding: 40px; color: #aaa; }
     .msg { padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; margin-top: 10px; display: none; }
@@ -147,11 +48,10 @@
     .btn-excluir:hover { background: #b71c1c; }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
     .modal-overlay.active { display: flex; }
-    .modal { background: white; border-radius: 14px; padding: 28px; max-width: 420px; width: 90%; }
+    .modal { background: white; border-radius: 14px; padding: 28px; max-width: 420px; width: 90%; max-height: 90vh; overflow-y: auto; }
     .modal h3 { margin-bottom: 16px; color: #1a1a2e; }
-    .modal label { display: block; font-size: 0.83rem; font-weight: 600; color: #333; margin-bottom: 4px; margin-top: 10px; }
-    .modal input, .modal select { width: 100%; padding: 9px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 0.9rem; background: white; }
-    .modal input:focus, .modal select:focus { outline: none; border-color: #1565c0; }
+    .modal label { display: block; font-size: 0.83rem; font-weight: 600; color: #333; margin-bottom: 4px; margin-top: 12px; }
+    .modal input, .modal select { width: 100%; padding: 9px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 0.9rem; background: white; margin-bottom: 0; }
     .modal-btns { display: flex; gap: 10px; margin-top: 18px; }
     .modal-btns button { flex: 1; padding: 10px; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
     .modal-msg { padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; margin-top: 10px; display: none; }
@@ -198,9 +98,7 @@
       <div class="f"><label>Data final</label><input type="date" id="f-fim" /></div>
       <div class="f">
         <label>Campo de Estágio</label>
-        <select id="f-ilpi">
-          <option value="">Todas</option>
-        </select>
+        <select id="f-ilpi"><option value="">Todas</option></select>
       </div>
       <div class="f"><label>Aluno</label><input type="text" id="f-aluno" placeholder="Buscar nome..." /></div>
       <div class="f" style="justify-content:flex-end"><button class="btn" onclick="carregar()">🔍 Filtrar</button></div>
@@ -215,169 +113,6 @@
     </div>
   </div>
 </div>
-
-<script>
-  const SUPABASE_URL = 'https://popryznbbmzbzaowfeoc.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvcHJ5em5iYm16Ynphb3dmZW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDI3NDcsImV4cCI6MjA5Nzk3ODc0N30.xkPhLr-76Vtdo5yTC4hJRg52aM4-8bwQyGBqtzouJKE';
-  const SENHA_ADMIN = '1234';
-
-  let todosRegistros = [];
-
-  function loginAdmin() {
-    const s = document.getElementById('senha-admin').value;
-    if (s === SENHA_ADMIN) {
-      sessionStorage.setItem('coordenacao_auth', '1');
-      document.getElementById('login-admin').style.display = 'none';
-      document.getElementById('painel').style.display = 'block';
-      iniciar();
-    } else {
-      const msg = document.getElementById('msg-login');
-      msg.className = 'msg error'; msg.textContent = 'Senha incorreta.';
-    }
-  }
-  document.getElementById('senha-admin').addEventListener('keydown', e => { if(e.key==='Enter') loginAdmin(); });
-
-  function sairAdmin() {
-    sessionStorage.removeItem('coordenacao_auth');
-    document.getElementById('login-admin').style.display = 'block';
-    document.getElementById('painel').style.display = 'none';
-    document.getElementById('senha-admin').value = '';
-  }
-
-  async function supabaseFetch(path) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
-    return res.json();
-  }
-
-  async function iniciar() {
-    const hoje = new Date().toISOString().split('T')[0];
-    document.getElementById('f-ini').value = hoje.slice(0,8) + '01';
-    document.getElementById('f-fim').value = hoje;
-    await carregarFiltroLocais();
-    carregar();
-    setInterval(carregar, 60000);
-  }
-
-  async function carregarFiltroLocais() {
-    try {
-      const locais = await supabaseFetch('/locais_ilpi?ativo=eq.true&order=nome.asc');
-      const sel = document.getElementById('f-ilpi');
-      sel.innerHTML = '<option value="">Todas</option>' +
-        locais.map(l => `<option value="${l.id}">${l.nome}</option>`).join('');
-    } catch(e) {}
-  }
-
-  async function carregar() {
-    const ini = document.getElementById('f-ini').value;
-    const fim = document.getElementById('f-fim').value;
-    const ilpi = document.getElementById('f-ilpi').value;
-    const aluno = document.getElementById('f-aluno').value.trim();
-
-    let q = `/presencas_ilpi?order=data.desc,horario.desc`;
-    if (ini) q += `&data=gte.${ini}`;
-    if (fim) q += `&data=lte.${fim}`;
-    if (ilpi) q += `&ilpi=eq.${ilpi}`;
-    if (aluno) q += `&aluno_nome=ilike.*${encodeURIComponent(aluno)}*`;
-
-    const data = await supabaseFetch(q);
-    todosRegistros = data;
-    renderTabela(data);
-    calcularStats();
-    document.getElementById('ultimo-update').textContent = 'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
-  }
-
-  function calcularStats() {
-    const hoje = new Date().toISOString().split('T')[0];
-    const mes = hoje.slice(0,7);
-    const hojeRegs = todosRegistros.filter(r => r.data === hoje);
-    const mesRegs = todosRegistros.filter(r => r.data && r.data.startsWith(mes));
-    const alunosHoje = new Set(hojeRegs.map(r => r.aluno_id)).size;
-
-    // Calcular total de horas do mês
-    let totalMin = 0;
-    const saidas = mesRegs.filter(r => r.tipo === 'saida' && r.carga_horaria);
-    saidas.forEach(r => {
-      const m = r.carga_horaria.match(/(\d+)h(\d+)/);
-      if (m) totalMin += parseInt(m[1]) * 60 + parseInt(m[2]);
-    });
-    const th = Math.floor(totalMin / 60);
-    const tm = totalMin % 60;
-
-    document.getElementById('stat-hoje').textContent = new Set(hojeRegs.filter(r=>r.tipo==='entrada').map(r=>r.aluno_id)).size;
-    document.getElementById('stat-alunos').textContent = alunosHoje;
-    document.getElementById('stat-mes').textContent = new Set(mesRegs.filter(r=>r.tipo==='entrada').map(r=>r.aluno_id+'_'+r.data)).size;
-    document.getElementById('stat-horas').textContent = `${th}h${String(tm).padStart(2,'0')}`;
-  }
-
-  function renderTabela(data) {
-    document.getElementById('total-label').textContent = `${data.length} registro(s)`;
-    const cont = document.getElementById('tabela-container');
-    if (!data.length) { cont.innerHTML = '<div class="empty">Nenhum registro encontrado.</div>'; return; }
-
-    const rows = data.map(r => {
-      const dt = r.data ? r.data.split('-').reverse().join('/') : '-';
-      const horas = r.carga_horaria ? `<strong>${r.carga_horaria}</strong>` : '-';
-      const cpfFmt = r.cpf ? r.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4') : '-';
-      return `<tr>
-        <td>${dt}</td>
-        <td>${r.horario || '-'}</td>
-        <td><strong>${r.aluno_nome || '-'}</strong></td>
-        <td>${cpfFmt}</td>
-        <td><span class="badge-ilpi">${r.ilpi_nome || '-'}</span></td>
-        <td>${horas}</td>
-        <td>
-          <div class="acoes">
-            <button class="btn-editar" onclick="abrirEditar('${r.id}','${(r.aluno_nome||'').replace(/'/g,"\'")}','${r.cpf||''}','${r.ilpi||''}','${r.data||''}','${r.horario||''}','${r.carga_horaria||''}','${r.ilpi_nome||''}')">✏️ Editar</button>
-            <button class="btn-excluir" onclick="abrirExcluir('${r.id}','${(r.aluno_nome||'').replace(/'/g,"\'")}','${dt}')">🗑 Excluir</button>
-          </div>
-        </td>
-      </tr>`;
-    }).join('');
-
-    cont.innerHTML = `<table>
-      <thead><tr>
-        <th>Data</th><th>Horário</th><th>Aluno</th><th>CPF</th><th>Campo de Estágio</th><th>C. Horária</th><th>Ações</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-  }
-
-  function exportarExcel() {
-    if (!todosRegistros.length) { alert('Nenhum dado para exportar.'); return; }
-
-    // Agrupar por aluno + ILPI + data para montar linha completa
-    const mapa = {};
-    todosRegistros.forEach(r => {
-      const chave = `${r.aluno_id}_${r.ilpi}_${r.data}`;
-      if (!mapa[chave]) mapa[chave] = { aluno: r.aluno_nome, cpf: r.cpf, matricula: r.matricula, ilpi: r.ilpi_nome, data: r.data, entrada: '-', saida: '-', horas: '-' };
-      if (r.tipo === 'entrada') mapa[chave].entrada = r.horario;
-      if (r.tipo === 'saida')   { mapa[chave].saida = r.horario; if (r.carga_horaria) mapa[chave].horas = r.carga_horaria; }
-    });
-
-    const linhas = Object.values(mapa).sort((a,b) => a.data < b.data ? 1 : -1);
-    const ws_data = [
-      ['Nome do Aluno', 'CPF', 'Campo de Estágio', 'Data', 'Entrada', 'Saída', 'Carga Horária'],
-      ...linhas.map(l => [
-        l.aluno,
-        l.cpf ? l.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4') : '',
-        l.matricula || '',
-        l.ilpi || '',
-        l.data ? l.data.split('-').reverse().join('/') : '',
-        l.entrada,
-        l.saida,
-        l.horas
-      ])
-    ];
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(ws_data);
-    ws['!cols'] = [30,18,14,22,12,10,10,14].map(w => ({wch:w}));
-    XLSX.utils.book_append_sheet(wb, ws, 'Presenças Estágio');
-    XLSX.writeFile(wb, `presencas_ilpi_${new Date().toISOString().split('T')[0]}.xlsx`);
-  }
-</script>
 
 <!-- Modal Editar -->
 <div class="modal-overlay" id="modal-editar">
@@ -408,7 +143,7 @@
 <div class="modal-overlay" id="modal-excluir">
   <div class="modal" style="text-align:center;max-width:360px;">
     <h3>⚠️ Excluir Registro</h3>
-    <p id="modal-excluir-texto" style="color:#555;font-size:0.9rem;margin-bottom:20px;"></p>
+    <p id="modal-excluir-texto" style="color:#555;font-size:0.9rem;margin:16px 0 20px;"></p>
     <div class="modal-btns">
       <button onclick="fecharModal('modal-excluir')" style="background:white;color:#1565c0;border:1.5px solid #1565c0;">Cancelar</button>
       <button onclick="confirmarExclusao()" style="background:#c62828;color:white;">Excluir</button>
@@ -416,5 +151,243 @@
   </div>
 </div>
 
+<script>
+  const SUPABASE_URL = 'https://popryznbbmzbzaowfeoc.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvcHJ5em5iYm16Ynphb3dmZW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDI3NDcsImV4cCI6MjA5Nzk3ODc0N30.xkPhLr-76Vtdo5yTC4hJRg52aM4-8bwQyGBqtzouJKE';
+  const SENHA_ADMIN = '1234';
+
+  let todosRegistros = [];
+  let locaisAdmin = [];
+  let registroParaExcluir = null;
+
+  // ── AUTH ──────────────────────────
+  function loginAdmin() {
+    if (document.getElementById('senha-admin').value === SENHA_ADMIN) {
+      sessionStorage.setItem('coordenacao_auth', '1');
+      document.getElementById('login-admin').style.display = 'none';
+      document.getElementById('painel').style.display = 'block';
+      iniciar();
+    } else {
+      const msg = document.getElementById('msg-login');
+      msg.className = 'msg error'; msg.textContent = 'Senha incorreta.';
+    }
+  }
+  document.getElementById('senha-admin').addEventListener('keydown', e => { if(e.key==='Enter') loginAdmin(); });
+
+  function sairAdmin() {
+    sessionStorage.removeItem('coordenacao_auth');
+    document.getElementById('login-admin').style.display = 'block';
+    document.getElementById('painel').style.display = 'none';
+    document.getElementById('senha-admin').value = '';
+  }
+
+  if (sessionStorage.getItem('coordenacao_auth') === '1') {
+    document.getElementById('login-admin').style.display = 'none';
+    document.getElementById('painel').style.display = 'block';
+    iniciar();
+  }
+
+  // ── SUPABASE ──────────────────────
+  async function supabaseFetch(path, options = {}) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...options.headers },
+      ...options
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || JSON.stringify(data));
+    return data;
+  }
+
+  // ── INICIAR ───────────────────────
+  async function iniciar() {
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('f-ini').value = hoje.slice(0,8) + '01';
+    document.getElementById('f-fim').value = hoje;
+    await carregarFiltroLocais();
+    carregar();
+    setInterval(carregar, 60000);
+  }
+
+  async function carregarFiltroLocais() {
+    try {
+      locaisAdmin = await supabaseFetch('/locais_ilpi?ativo=eq.true&order=nome.asc');
+      const sel = document.getElementById('f-ilpi');
+      sel.innerHTML = '<option value="">Todas</option>' +
+        locaisAdmin.map(l => `<option value="${l.id}">${l.nome}</option>`).join('');
+    } catch(e) {}
+  }
+
+  // ── CARREGAR REGISTROS ────────────
+  async function carregar() {
+    const ini = document.getElementById('f-ini').value;
+    const fim = document.getElementById('f-fim').value;
+    const ilpi = document.getElementById('f-ilpi').value;
+    const aluno = document.getElementById('f-aluno').value.trim();
+
+    let q = `/presencas_ilpi?order=data.desc,horario.desc`;
+    if (ini) q += `&data=gte.${ini}`;
+    if (fim) q += `&data=lte.${fim}`;
+    if (ilpi) q += `&ilpi=eq.${ilpi}`;
+    if (aluno) q += `&aluno_nome=ilike.*${encodeURIComponent(aluno)}*`;
+
+    const data = await supabaseFetch(q);
+    todosRegistros = data;
+    renderTabela(data);
+    calcularStats();
+    document.getElementById('ultimo-update').textContent = 'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
+  }
+
+  function calcularStats() {
+    const hoje = new Date().toISOString().split('T')[0];
+    const mes = hoje.slice(0,7);
+    const hojeRegs = todosRegistros.filter(r => r.data === hoje);
+    const mesRegs = todosRegistros.filter(r => r.data && r.data.startsWith(mes));
+
+    let totalMin = 0;
+    mesRegs.forEach(r => {
+      if (r.carga_horaria) {
+        const m = r.carga_horaria.match(/(\d+)h(\d+)/);
+        if (m) totalMin += parseInt(m[1]) * 60 + parseInt(m[2]);
+      }
+    });
+    const th = Math.floor(totalMin / 60), tm = totalMin % 60;
+
+    document.getElementById('stat-hoje').textContent = hojeRegs.length;
+    document.getElementById('stat-alunos').textContent = new Set(hojeRegs.map(r => r.aluno_id)).size;
+    document.getElementById('stat-mes').textContent = mesRegs.length;
+    document.getElementById('stat-horas').textContent = `${th}h${String(tm).padStart(2,'0')}`;
+  }
+
+  function renderTabela(data) {
+    document.getElementById('total-label').textContent = `${data.length} registro(s)`;
+    const cont = document.getElementById('tabela-container');
+    if (!data.length) { cont.innerHTML = '<div class="empty">Nenhum registro encontrado.</div>'; return; }
+
+    const rows = data.map(r => {
+      const dt = r.data ? r.data.split('-').reverse().join('/') : '-';
+      const cpfFmt = r.cpf ? r.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '-';
+      const horas = r.carga_horaria ? `<strong>${r.carga_horaria}</strong>` : '-';
+      // Escapar aspas simples no nome para não quebrar o onclick
+      const nomeEsc = (r.aluno_nome || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return `<tr>
+        <td>${dt}</td>
+        <td>${r.horario || '-'}</td>
+        <td><strong>${r.aluno_nome || '-'}</strong></td>
+        <td>${cpfFmt}</td>
+        <td><span class="badge-ilpi">${r.ilpi_nome || '-'}</span></td>
+        <td>${horas}</td>
+        <td>
+          <div class="acoes">
+            <button class="btn-editar" onclick="abrirEditar('${r.id}')">✏️ Editar</button>
+            <button class="btn-excluir" onclick="abrirExcluir('${r.id}','${nomeEsc}','${dt}')">🗑 Excluir</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    cont.innerHTML = `<table>
+      <thead><tr>
+        <th>Data</th><th>Horário</th><th>Aluno</th><th>CPF</th><th>Campo de Estágio</th><th>C. Horária</th><th>Ações</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  // ── EDITAR ────────────────────────
+  async function abrirEditar(id) {
+    const r = todosRegistros.find(x => x.id === id);
+    if (!r) return;
+
+    document.getElementById('edit-id').value = id;
+    document.getElementById('edit-aluno').value = r.aluno_nome || '';
+    document.getElementById('edit-cpf').value = r.cpf || '';
+    document.getElementById('edit-data').value = r.data || '';
+    document.getElementById('edit-horario').value = r.horario || '';
+    document.getElementById('edit-carga').value = r.carga_horaria || '';
+
+    const sel = document.getElementById('edit-local');
+    if (!locaisAdmin.length) await carregarFiltroLocais();
+    sel.innerHTML = locaisAdmin.map(l =>
+      `<option value="${l.id}" ${l.id === r.ilpi ? 'selected' : ''}>${l.nome}</option>`
+    ).join('');
+
+    document.getElementById('modal-editar-msg').style.display = 'none';
+    document.getElementById('modal-editar').classList.add('active');
+  }
+
+  async function salvarEdicao() {
+    const id = document.getElementById('edit-id').value;
+    const aluno_nome = document.getElementById('edit-aluno').value.trim();
+    const cpf = document.getElementById('edit-cpf').value.trim().replace(/\D/g,'');
+    const localSel = document.getElementById('edit-local');
+    const ilpi = localSel.value;
+    const ilpi_nome = localSel.options[localSel.selectedIndex].text;
+    const data = document.getElementById('edit-data').value;
+    const horario = document.getElementById('edit-horario').value;
+    const carga_horaria = document.getElementById('edit-carga').value.trim();
+    const msg = document.getElementById('modal-editar-msg');
+
+    if (!aluno_nome || !data || !horario) {
+      msg.className = 'modal-msg error'; msg.textContent = 'Preencha nome, data e horário.'; return;
+    }
+
+    try {
+      await supabaseFetch(`/presencas_ilpi?id=eq.${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ aluno_nome, cpf, ilpi, ilpi_nome, data, horario, carga_horaria })
+      });
+      fecharModal('modal-editar');
+      carregar();
+    } catch(e) {
+      msg.className = 'modal-msg error'; msg.textContent = 'Erro ao salvar. Tente novamente.';
+    }
+  }
+
+  // ── EXCLUIR ───────────────────────
+  function abrirExcluir(id, aluno, data) {
+    registroParaExcluir = id;
+    document.getElementById('modal-excluir-texto').textContent =
+      `Tem certeza que deseja excluir o registro de "${aluno}" em ${data}?`;
+    document.getElementById('modal-excluir').classList.add('active');
+  }
+
+  async function confirmarExclusao() {
+    try {
+      await supabaseFetch(`/presencas_ilpi?id=eq.${registroParaExcluir}`, { method: 'DELETE' });
+      fecharModal('modal-excluir');
+      carregar();
+    } catch(e) { alert('Erro ao excluir. Tente novamente.'); }
+  }
+
+  // ── MODAIS ────────────────────────
+  function fecharModal(id) {
+    document.getElementById(id).classList.remove('active');
+    registroParaExcluir = null;
+  }
+  document.querySelectorAll('.modal-overlay').forEach(m =>
+    m.addEventListener('click', function(e) { if(e.target===this) this.classList.remove('active'); })
+  );
+
+  // ── EXPORTAR EXCEL ────────────────
+  function exportarExcel() {
+    if (!todosRegistros.length) { alert('Nenhum dado para exportar.'); return; }
+    const ws_data = [
+      ['Nome do Aluno', 'CPF', 'Campo de Estágio', 'Data', 'Horário', 'Carga Horária'],
+      ...todosRegistros.map(r => [
+        r.aluno_nome || '',
+        r.cpf ? r.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '',
+        r.ilpi_nome || '',
+        r.data ? r.data.split('-').reverse().join('/') : '',
+        r.horario || '',
+        r.carga_horaria || ''
+      ])
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    ws['!cols'] = [30,18,22,12,10,14].map(w => ({wch:w}));
+    XLSX.utils.book_append_sheet(wb, ws, 'Presenças');
+    XLSX.writeFile(wb, `presencas_estagio_${new Date().toISOString().split('T')[0]}.xlsx`);
+  }
+</script>
 </body>
 </html>
